@@ -1,0 +1,1 @@
+default_app_config = "dispachai.despacho.apps.DespachoConfig"
