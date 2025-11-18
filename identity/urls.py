@@ -1,8 +1,9 @@
 from django.urls import path, include
 
-from .views import LoginView
+from .views import LoginView, UserAPIView
 
 urlpatterns = [
-    path('login/', LoginView.as_view(), name='knox_login'),
-    path('', include('knox.urls')),
+    path('auth/login/', LoginView.as_view(), name='knox_login'),
+    path('auth/', include('knox.urls')),
+    path('auth/register/', UserAPIView.as_view(), name='user_register'),
 ]
