@@ -5,10 +5,10 @@ from rest_framework import permissions
 from rest_framework.authtoken.serializers import AuthTokenSerializer
 from rest_framework.generics import CreateAPIView
 from knox.views import LoginView as KnoxLoginView
-from rest_framework.permissions import IsAdminUser
 from drf_spectacular.utils import extend_schema
 
 from .serializers import UserSerializer 
+from .permissions import IsSuperUser
 
 class LoginView(KnoxLoginView):
     permission_classes = (permissions.AllowAny,)
@@ -22,11 +22,5 @@ class LoginView(KnoxLoginView):
 
 class UserAPIView(CreateAPIView):
     serializer_class = UserSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsSuperUser]
     queryset = get_user_model().objects.all() 
-
-    @extend_schema(
-        description="Register a new user (Admin only).",
-    )
-    def post(self, request, *args, **kwargs):
-        return super().post(request, *args, **kwargs) 

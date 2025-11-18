@@ -41,7 +41,6 @@ paths:
   /api/auth/register/:
     post:
       operationId: register_create
-      description: Register a new user (Admin only).
       tags:
       - register
       requestBody:
