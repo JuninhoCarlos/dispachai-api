@@ -1,3 +1,4 @@
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 
 
@@ -6,7 +7,12 @@ class Advogado(models.Model):
     oab_numero = models.CharField(max_length=20, unique=True, blank=True, null=True)
     email = models.EmailField(unique=True, blank=True, null=True)
     telefone = models.CharField(max_length=15, blank=True, null=True)
-    comissao_padrao = models.DecimalField(max_digits=5, decimal_places=2, default=30.00)
+    comissao_padrao = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=30.00,
+        validators=[MinValueValidator(0.01), MaxValueValidator(100.00)],
+    )
     criado_em = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -19,7 +25,12 @@ class Corretor(models.Model):
     advogado = models.ForeignKey(
         Advogado, on_delete=models.CASCADE, related_name="corretores"
     )
-    comissao_padrao = models.DecimalField(max_digits=5, decimal_places=2, default=9.00)
+    comissao_padrao = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=30.00,
+        validators=[MinValueValidator(0.01), MaxValueValidator(100.00)],
+    )
     criado_em = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -40,10 +51,18 @@ class Processo(models.Model):
     )
 
     comissao_ajustada_advogado = models.DecimalField(
-        max_digits=3, decimal_places=2, blank=True, null=True
+        max_digits=5,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        validators=[MinValueValidator(0.01), MaxValueValidator(100.00)],
     )
     comissao_ajustada_corretor = models.DecimalField(
-        max_digits=3, decimal_places=2, blank=True, null=True
+        max_digits=5,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        validators=[MinValueValidator(0.01), MaxValueValidator(100.00)],
     )
 
     valor_total = models.DecimalField(
