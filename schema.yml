@@ -6,9 +6,9 @@ info:
 paths:
   /api/auth/login/:
     post:
-      operationId: login_create
+      operationId: auth_login_create
       tags:
-      - login
+      - auth
       security:
       - knoxApiToken: []
       - {}
@@ -17,9 +17,9 @@ paths:
           description: No response body
   /api/auth/logout/:
     post:
-      operationId: logout_create
+      operationId: auth_logout_create
       tags:
-      - logout
+      - auth
       security:
       - knoxApiToken: []
       responses:
@@ -27,12 +27,12 @@ paths:
           description: No response body
   /api/auth/logoutall/:
     post:
-      operationId: logoutall_create
+      operationId: auth_logoutall_create
       description: |-
         Log the user out of all sessions
         I.E. deletes all auth tokens for the user
       tags:
-      - logoutall
+      - auth
       security:
       - knoxApiToken: []
       responses:
@@ -40,9 +40,9 @@ paths:
           description: No response body
   /api/auth/register/:
     post:
-      operationId: register_create
+      operationId: auth_register_create
       tags:
-      - register
+      - auth
       requestBody:
         content:
           application/json:
@@ -64,8 +64,78 @@ paths:
               schema:
                 $ref: '#/components/schemas/User'
           description: ''
+  /api/despacho/advogado:
+    get:
+      operationId: despacho_advogado_list
+      tags:
+      - despacho
+      security:
+      - knoxApiToken: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Advogado'
+          description: ''
+    post:
+      operationId: despacho_advogado_create
+      tags:
+      - despacho
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Advogado'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Advogado'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Advogado'
+        required: true
+      security:
+      - knoxApiToken: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Advogado'
+          description: ''
 components:
   schemas:
+    Advogado:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        nome:
+          type: string
+          maxLength: 100
+        oab_numero:
+          type: string
+          nullable: true
+          maxLength: 20
+        email:
+          type: string
+          format: email
+          nullable: true
+          maxLength: 254
+        telefone:
+          type: string
+          nullable: true
+          maxLength: 15
+        comissao_padrao:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+      required:
+      - id
+      - nome
     User:
       type: object
       properties:
