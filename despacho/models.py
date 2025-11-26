@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 
@@ -11,7 +13,10 @@ class Advogado(models.Model):
         max_digits=5,
         decimal_places=2,
         default=30.00,
-        validators=[MinValueValidator(0.01), MaxValueValidator(100.00)],
+        validators=[
+            MinValueValidator(Decimal(0.01)),
+            MaxValueValidator(Decimal(100.00)),
+        ],
     )
     criado_em = models.DateTimeField(auto_now_add=True)
 
@@ -29,7 +34,10 @@ class Corretor(models.Model):
         max_digits=5,
         decimal_places=2,
         default=30.00,
-        validators=[MinValueValidator(0.01), MaxValueValidator(100.00)],
+        validators=[
+            MinValueValidator(Decimal(0.01)),
+            MaxValueValidator(Decimal(100.00)),
+        ],
     )
     criado_em = models.DateTimeField(auto_now_add=True)
 
@@ -55,14 +63,20 @@ class Processo(models.Model):
         decimal_places=2,
         blank=True,
         null=True,
-        validators=[MinValueValidator(0.01), MaxValueValidator(100.00)],
+        validators=[
+            MinValueValidator(Decimal(0.01)),
+            MaxValueValidator(Decimal(100.00)),
+        ],
     )
     comissao_ajustada_corretor = models.DecimalField(
         max_digits=5,
         decimal_places=2,
         blank=True,
         null=True,
-        validators=[MinValueValidator(0.01), MaxValueValidator(100.00)],
+        validators=[
+            MinValueValidator(Decimal(0.01)),
+            MaxValueValidator(Decimal(100.00)),
+        ],
     )
 
     valor_total = models.DecimalField(
