@@ -9,6 +9,7 @@ from pessoa.models import Advogado, Corretor
 class TipoPagamento(models.TextChoices):
     IMPLANTACAO = ("IMPLANTACAO",)
     CONTRATO = ("CONTRATO",)
+    PARCELA = ("PARCELA",)
     RPV = ("RPV",)
     AUXILIODOENCA = ("AUXILIODOENCA",)
 
@@ -41,8 +42,8 @@ class Pagamento(models.Model):
             return self.pagamentoimplantacao
         if hasattr(self, "pagamentocontrato"):
             return self.pagamentocontrato
-        # if hasattr(self, "pagamentorpv"):
-        #     return self.pagamentorpv
+        if hasattr(self, "pagamentoparcela"):
+            return self.pagamentoparcela
         # if hasattr(self, "pagamentoauxiliodoenca"):
         #     return self.pagamentoauxiliodoenca
         return self
@@ -78,6 +79,31 @@ class PagamentoContrato(Pagamento):
 
     class Meta:
         verbose_name = "Pagamento de Contrato"
+
+
+class PagamentoParcela(Pagamento):
+    valor_parcela = models.DecimalField(max_digits=10, decimal_places=2)
+    numero_parcela = models.PositiveIntegerField()
+    data_vencimento = models.DateField(blank=False, null=False)
+    status = models.CharField(
+        max_length=20,
+        choices=StatusPagamento.choices,
+        default=StatusPagamento.PLANEJADO,
+    )
+    valor_pago = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True
+    )
+
+    contrato = models.ForeignKey(
+        PagamentoContrato,
+        on_delete=models.CASCADE,
+        related_name="parcelas",
+        null=False,
+        blank=False,
+    )
+
+    class Meta:
+        verbose_name = "Pagamento de Parcelas"
 
 
 # class PagamentoAuxilioDoenca(Pagamento):

@@ -1,10 +1,14 @@
-from datetime import date
+from datetime import date, timedelta
+from dateutil.relativedelta import relativedelta
+
 from rest_framework import serializers
 from .models import (
     PagamentoImplantacao,
     PagamentoContrato,
     Processo,
     TipoPagamento,
+    PagamentoParcela,
+    StatusPagamento,
     Pagamento,
 )
 
@@ -22,6 +26,11 @@ class ProcessoSerializer(serializers.ModelSerializer):
 
 class PagamentoContratoSerializer(serializers.ModelSerializer):
     tipo = serializers.SerializerMethodField(read_only=True)
+    vencimento_parcela = serializers.DateField(
+        write_only=True,
+        required=True,
+        help_text="Data de vencimento da primeira parcela.",
+    )
 
     class Meta:
         model = PagamentoContrato
@@ -49,7 +58,6 @@ class PagamentoContratoSerializer(serializers.ModelSerializer):
             )
 
         # 2. Validar: entrada + valor_parcela * numero_parcelas == valor_total
-
         valor_total = data.get("valor_total")
         entrada = data.get("entrada")
         valor_parcela = data.get("valor_parcela")
@@ -57,7 +65,6 @@ class PagamentoContratoSerializer(serializers.ModelSerializer):
 
         if all([valor_total, entrada, valor_parcela, numero_parcelas]):
             calculado = entrada + (valor_parcela * numero_parcelas)
-
             if calculado != valor_total:
                 raise serializers.ValidationError(
                     {
@@ -74,8 +81,32 @@ class PagamentoContratoSerializer(serializers.ModelSerializer):
         return TipoPagamento.CONTRATO
 
     def create(self, validated_data):
+        vencimento_parcela = validated_data.pop("vencimento_parcela")
         validated_data["tipo"] = TipoPagamento.CONTRATO
-        return super().create(validated_data)
+        contrato = super().create(validated_data)
+
+        self._create_parcelas(contrato, vencimento_parcela)
+
+        return contrato
+
+    def _create_parcelas(self, contrato, vencimento_parcela):
+        parcelas = []
+
+        for i in range(contrato.numero_parcelas):
+            parcelas.append(
+                PagamentoParcela(
+                    contrato=contrato,
+                    valor_parcela=contrato.valor_parcela,
+                    numero_parcela=i + 1,
+                    data_vencimento=vencimento_parcela + relativedelta(months=i),
+                    status=StatusPagamento.PLANEJADO,
+                    valor_pago=None,
+                    tipo=TipoPagamento.PARCELA,
+                    processo=contrato.processo,
+                )
+            )
+
+        PagamentoParcela.objects.bulk_create(parcelas, batch_size=200)
 
 
 class PagamentoImplantacaoSerializer(serializers.ModelSerializer):
