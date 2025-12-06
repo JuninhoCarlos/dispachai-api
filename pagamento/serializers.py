@@ -36,8 +36,39 @@ class PagamentoContratoSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["tipo"]
 
-    # TODO: Validar data do pagamento: deve ser uma data futura
-    # TODO: validar parcela*meses + entrada == valor_total
+    def validate(self, data):
+        """
+        Validações de alto nível envolvendo múltiplos campos.
+        """
+
+        # 1. Validar data do pagamento: deve ser uma data futura
+        vencimento = data.get("vencimento_entrada")
+        if vencimento and vencimento <= date.today():
+            raise serializers.ValidationError(
+                {"vencimento_entrada": "A data deve ser futura."}
+            )
+
+        # 2. Validar: entrada + valor_parcela * numero_parcelas == valor_total
+
+        valor_total = data.get("valor_total")
+        entrada = data.get("entrada")
+        valor_parcela = data.get("valor_parcela")
+        numero_parcelas = data.get("numero_parcelas")
+
+        if all([valor_total, entrada, valor_parcela, numero_parcelas]):
+            calculado = entrada + (valor_parcela * numero_parcelas)
+
+            if calculado != valor_total:
+                raise serializers.ValidationError(
+                    {
+                        "valor_total": (
+                            "O valor_total deve ser igual a entrada + "
+                            "valor_parcela * numero_parcelas."
+                        )
+                    }
+                )
+
+        return data
 
     def get_tipo(self, obj):
         return TipoPagamento.CONTRATO
