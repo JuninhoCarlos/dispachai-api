@@ -1,7 +1,7 @@
 from decimal import Decimal
 
-from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 
 class Advogado(models.Model):
@@ -43,47 +43,3 @@ class Corretor(models.Model):
 
     def __str__(self):
         return f"{self.nome} (Advogado: {self.advogado.nome})"
-
-
-class Processo(models.Model):
-    nome_processo = models.TextField(blank=True, null=True)
-    advogado = models.ForeignKey(
-        Advogado, on_delete=models.CASCADE, related_name="processos"
-    )
-    corretor = models.ForeignKey(
-        Corretor,
-        on_delete=models.CASCADE,
-        related_name="processos",
-        null=True,
-        blank=True,
-    )
-
-    comissao_ajustada_advogado = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        blank=True,
-        null=True,
-        validators=[
-            MinValueValidator(Decimal(0.01)),
-            MaxValueValidator(Decimal(100.00)),
-        ],
-    )
-    comissao_ajustada_corretor = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        blank=True,
-        null=True,
-        validators=[
-            MinValueValidator(Decimal(0.01)),
-            MaxValueValidator(Decimal(100.00)),
-        ],
-    )
-
-    valor_total = models.DecimalField(
-        max_digits=10, decimal_places=2, blank=True, null=True
-    )
-
-    criado_em = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Processo {self.nome_processo} - Advogado: {self.advogado.nome}"

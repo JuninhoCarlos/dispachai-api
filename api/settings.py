@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "identity",
     "despacho",
+    "pagamento",
 ]
 
 REST_FRAMEWORK = {
