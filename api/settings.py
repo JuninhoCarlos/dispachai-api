@@ -46,7 +46,7 @@ INSTALLED_APPS = [
     "knox",
     "drf_spectacular",
     "identity",
-    "despacho",
+    "pessoa",
     "pagamento",
 ]
 
