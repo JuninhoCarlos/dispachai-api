@@ -41,6 +41,7 @@ class PagamentoContratoSerializer(serializers.ModelSerializer):
             "valor_parcela",
             "numero_parcelas",
             "vencimento_entrada",
+            "vencimento_parcela",
             "tipo",
         ]
         read_only_fields = ["tipo"]
@@ -85,7 +86,7 @@ class PagamentoContratoSerializer(serializers.ModelSerializer):
         validated_data["tipo"] = TipoPagamento.CONTRATO
         contrato = super().create(validated_data)
 
-        self._create_parcelas(contrato, vencimento_parcela)
+        # self._create_parcelas(contrato, vencimento_parcela)
 
         return contrato
 
