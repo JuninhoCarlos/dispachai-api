@@ -177,6 +177,17 @@ class PagamentoSerializer(serializers.ModelSerializer):
 
 
 class ProcessoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Processo
+        fields = [
+            "id",
+            "cliente",
+            "advogado",
+            "corretor",
+        ]
+
+
+class ProcessoReaderSerializer(serializers.ModelSerializer):
     id_processo = serializers.IntegerField(source="id", read_only=True)
     pagamentos = serializers.SerializerMethodField()
     advogado = serializers.CharField(source="advogado.nome", read_only=True)

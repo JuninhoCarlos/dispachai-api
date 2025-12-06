@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from .models import Processo, PagamentoImplantacao, PagamentoContrato
 from .serializers import (
     ProcessoSerializer,
-    ProcessoSerializer,
+    ProcessoReaderSerializer,
     PagamentoImplantacaoSerializer,
     PagamentoContratoSerializer,
 )
@@ -34,5 +34,5 @@ class PagamentoListAPIView(ListAPIView):
         "pagamentos__pagamentoimplantacao",
         "pagamentos__pagamentocontrato",
     )
-    serializer_class = ProcessoSerializer
+    serializer_class = ProcessoReaderSerializer
     permission_classes = [IsAuthenticated]

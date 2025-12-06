@@ -1,11 +1,16 @@
 from django.urls import path, include
 
-from .views import AdvogadoListCreateAPIView
+from .views import AdvogadoListCreateAPIView, CorretorListCreateAPIView
 
 urlpatterns = [
     path(
-        "despacho/advogado",
+        "pessoas/advogado",
         AdvogadoListCreateAPIView.as_view(),
         name="advogado_list_create",
+    ),
+    path(
+        "pessoas/corretor",
+        CorretorListCreateAPIView.as_view(),
+        name="corretor_list_create",
     ),
 ]
