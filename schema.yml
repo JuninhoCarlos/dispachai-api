@@ -105,6 +105,99 @@ paths:
               schema:
                 $ref: '#/components/schemas/Advogado'
           description: ''
+  /api/pagamento:
+    get:
+      operationId: pagamento_list
+      tags:
+      - pagamento
+      security:
+      - knoxApiToken: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Processo'
+          description: ''
+  /api/pagamento/contrato:
+    post:
+      operationId: pagamento_contrato_create
+      tags:
+      - pagamento
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PagamentoContrato'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PagamentoContrato'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PagamentoContrato'
+        required: true
+      security:
+      - knoxApiToken: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagamentoContrato'
+          description: ''
+  /api/pagamento/implantacao:
+    post:
+      operationId: pagamento_implantacao_create
+      tags:
+      - pagamento
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PagamentoImplantacao'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PagamentoImplantacao'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PagamentoImplantacao'
+        required: true
+      security:
+      - knoxApiToken: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagamentoImplantacao'
+          description: ''
+  /api/pagamento/processo:
+    post:
+      operationId: pagamento_processo_create
+      tags:
+      - pagamento
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Processo'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Processo'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Processo'
+      security:
+      - knoxApiToken: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Processo'
+          description: ''
 components:
   schemas:
     Advogado:
@@ -136,6 +229,89 @@ components:
       required:
       - id
       - nome
+    PagamentoContrato:
+      type: object
+      properties:
+        processo:
+          type: integer
+        valor_total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        entrada:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        valor_parcela:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        numero_parcelas:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        vencimento_entrada:
+          type: string
+          format: date
+        tipo:
+          type: string
+          readOnly: true
+      required:
+      - entrada
+      - numero_parcelas
+      - processo
+      - tipo
+      - valor_parcela
+      - valor_total
+      - vencimento_entrada
+    PagamentoImplantacao:
+      type: object
+      properties:
+        tipo:
+          type: string
+          readOnly: true
+        processo:
+          type: integer
+        valor_total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        porcentagem_escritorio:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+        data_vencimento:
+          type: string
+          format: date
+      required:
+      - data_vencimento
+      - porcentagem_escritorio
+      - processo
+      - tipo
+      - valor_total
+    Processo:
+      type: object
+      properties:
+        id_processo:
+          type: integer
+          readOnly: true
+        cliente:
+          type: string
+          nullable: true
+        advogado:
+          type: string
+          readOnly: true
+        corretor:
+          type: string
+          readOnly: true
+        pagamentos:
+          type: string
+          readOnly: true
+      required:
+      - advogado
+      - corretor
+      - id_processo
+      - pagamentos
     User:
       type: object
       properties:

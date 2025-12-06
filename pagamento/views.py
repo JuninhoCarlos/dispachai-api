@@ -1,35 +1,38 @@
-from rest_framework.generics import ListCreateAPIView
+from rest_framework.generics import ListCreateAPIView, CreateAPIView, ListAPIView
 from identity.permissions import IsSuperUser
 from rest_framework.permissions import IsAuthenticated
 
-from .models import Processo, PagamentoImplantacao
-from .serializers import ProcessoSerializer, PagamentoImplantacaoSerializer
+from .models import Processo, PagamentoImplantacao, PagamentoContrato
+from .serializers import (
+    ProcessoSerializer,
+    ProcessoSerializer,
+    PagamentoImplantacaoSerializer,
+    PagamentoContratoSerializer,
+)
 
 
-class ProcessoListCreateAPIView(ListCreateAPIView):
+class ProcessoListCreateAPIView(CreateAPIView):
     queryset = Processo.objects.all()
     serializer_class = ProcessoSerializer
-
-    def get_permissions(self):
-        if self.request.method == "GET":
-            # Permissions for GET requests
-            return [IsAuthenticated()]
-        elif self.request.method == "POST":
-            # Permissions for POST requests
-            return [IsSuperUser()]
-        return super().get_permissions()
+    permission_classes = [IsSuperUser]
 
 
-class ImplantacaoCreateAPIView(ListCreateAPIView):
+class ImplantacaoCreateAPIView(CreateAPIView):
     queryset = PagamentoImplantacao.objects.all()
     serializer_class = PagamentoImplantacaoSerializer
-    permission_classes = IsSuperUser
+    permission_classes = [IsSuperUser]
 
-    def get_permissions(self):
-        if self.request.method == "GET":
-            # Permissions for GET requests
-            return [IsAuthenticated()]
-        elif self.request.method == "POST":
-            # Permissions for POST requests
-            return [IsSuperUser()]
-        return super().get_permissions()
+
+class ContratoCreateAPIView(CreateAPIView):
+    queryset = PagamentoContrato.objects.all()
+    serializer_class = PagamentoContratoSerializer
+    permission_classes = [IsSuperUser]
+
+
+class PagamentoListAPIView(ListAPIView):
+    queryset = Processo.objects.select_related("advogado", "corretor").prefetch_related(
+        "pagamentos__pagamentoimplantacao",
+        "pagamentos__pagamentocontrato",
+    )
+    serializer_class = ProcessoSerializer
+    permission_classes = [IsAuthenticated]

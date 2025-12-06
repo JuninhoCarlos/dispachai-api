@@ -13,11 +13,18 @@ class TipoPagamento(models.TextChoices):
     AUXILIODOENCA = ("AUXILIODOENCA",)
 
 
+class StatusPagamento(models.TextChoices):
+    PLANEJADO = "PLANEJADO", "Planejado"
+    PAGO = "PAGO", "Pago"
+    PARCIALMENTE_PAGO = "PARCIALMENTE_PAGO", "Parcialmente Pago"
+    ATRASADO = "ATRASADO", "Atrasado"
+
+
 class Pagamento(models.Model):
     valor_total = models.DecimalField(max_digits=10, decimal_places=2)
     criado_em = models.DateTimeField(auto_now_add=True)
     processo = models.ForeignKey(
-        "Processo", on_delete=models.CASCADE, related_name="pagamentos"
+        "Processo", on_delete=models.DO_NOTHING, related_name="pagamentos"
     )
     tipo = models.CharField(
         max_length=20,
@@ -36,8 +43,8 @@ class Pagamento(models.Model):
             return self.pagamentocontrato
         # if hasattr(self, "pagamentorpv"):
         #     return self.pagamentorpv
-        if hasattr(self, "pagamentoauxiliodoenca"):
-            return self.pagamentoauxiliodoenca
+        # if hasattr(self, "pagamentoauxiliodoenca"):
+        #     return self.pagamentoauxiliodoenca
         return self
 
     class Meta:
@@ -46,7 +53,13 @@ class Pagamento(models.Model):
 
 class PagamentoImplantacao(Pagamento):
     porcentagem_escritorio = models.DecimalField(max_digits=5, decimal_places=2)
-    data_pagamento = models.DateField(blank=False, null=False)
+    data_vencimento = models.DateField(blank=False, null=False)
+
+    status = models.CharField(
+        max_length=20,
+        choices=StatusPagamento.choices,
+        default=StatusPagamento.PLANEJADO,
+    )
 
     class Meta:
         verbose_name = "Pagamento de Implantação"
@@ -55,18 +68,24 @@ class PagamentoImplantacao(Pagamento):
 class PagamentoContrato(Pagamento):
     entrada = models.DecimalField(max_digits=10, decimal_places=2)
     valor_parcela = models.DecimalField(max_digits=10, decimal_places=2)
-    meses = models.PositiveIntegerField()
+    numero_parcelas = models.PositiveIntegerField()
+    vencimento_entrada = models.DateField(blank=False, null=False)
+    status_entrada = models.CharField(
+        max_length=20,
+        choices=StatusPagamento.choices,
+        default=StatusPagamento.PLANEJADO,
+    )
 
     class Meta:
         verbose_name = "Pagamento de Contrato"
 
 
-class PagamentoAuxilioDoenca(Pagamento):
-    valor_mensal = models.DecimalField(max_digits=10, decimal_places=2)
-    ativo = models.BooleanField(default=True)
+# class PagamentoAuxilioDoenca(Pagamento):
+#     valor_mensal = models.DecimalField(max_digits=10, decimal_places=2)
+#     ativo = models.BooleanField(default=True)
 
-    class Meta:
-        verbose_name = "Pagamento Auxílio Doença"
+#     class Meta:
+#         verbose_name = "Pagamento Auxílio Doença"
 
 
 class Processo(models.Model):

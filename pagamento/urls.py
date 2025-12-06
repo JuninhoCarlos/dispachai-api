@@ -1,6 +1,11 @@
 from django.urls import path, include
 
-from .views import ProcessoListCreateAPIView, ImplantacaoCreateAPIView
+from .views import (
+    PagamentoListAPIView,
+    ProcessoListCreateAPIView,
+    ImplantacaoCreateAPIView,
+    ContratoCreateAPIView,
+)
 
 urlpatterns = [
     path(
@@ -13,4 +18,10 @@ urlpatterns = [
         ImplantacaoCreateAPIView.as_view(),
         name="implantacao_create",
     ),
+    path(
+        "pagamento/contrato",
+        ContratoCreateAPIView.as_view(),
+        name="contrato_create",
+    ),
+    path("pagamento", PagamentoListAPIView.as_view(), name="pagamento_list"),
 ]
