@@ -1,3 +1,4 @@
+from datetime import date
 from rest_framework import serializers
 from .models import (
     PagamentoImplantacao,
@@ -60,9 +61,29 @@ class PagamentoImplantacaoSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["tipo"]
 
-    # TODO: Validar data do pagamento: deve ser uma data futura
-    # TODO: Validar porcentagem do escritório: deve estar entre 0 e 100
-    # TODO: Validar valor total: deve ser maior que zero
+    def validate(self, data):
+        # validar valor_total > 0
+        valor_total = data.get("valor_total")
+        if valor_total is not None and valor_total <= 0:
+            raise serializers.ValidationError(
+                {"valor_total": "O valor total deve ser maior que zero."}
+            )
+
+        # validar porcentagem_escritorio entre 0 e 100
+        porcentagem = data.get("porcentagem_escritorio")
+        if porcentagem is not None and not (0 < porcentagem <= 100):
+            raise serializers.ValidationError(
+                {"porcentagem_escritorio": "A porcentagem deve estar entre 0 e 100."}
+            )
+
+        # validar data_vencimento no futuro
+        vencimento = data.get("data_vencimento")
+        if vencimento is not None and vencimento < date.today():
+            raise serializers.ValidationError(
+                {"data_vencimento": "A data de vencimento deve ser futura."}
+            )
+
+        return data
 
     def get_tipo(self, obj):
         return TipoPagamento.IMPLANTACAO
