@@ -333,10 +333,12 @@ components:
       properties:
         processo:
           type: integer
+          writeOnly: true
         valor_total:
           type: string
           format: decimal
           pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          writeOnly: true
         entrada:
           type: string
           format: decimal
@@ -352,29 +354,30 @@ components:
         vencimento_entrada:
           type: string
           format: date
-        tipo:
+        vencimento_parcela:
           type: string
-          readOnly: true
+          format: date
+          writeOnly: true
+          description: Data de vencimento da primeira parcela.
       required:
       - entrada
       - numero_parcelas
       - processo
-      - tipo
       - valor_parcela
       - valor_total
       - vencimento_entrada
+      - vencimento_parcela
     PagamentoImplantacao:
       type: object
       properties:
-        tipo:
-          type: string
-          readOnly: true
         processo:
           type: integer
+          writeOnly: true
         valor_total:
           type: string
           format: decimal
           pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          writeOnly: true
         porcentagem_escritorio:
           type: string
           format: decimal
@@ -386,7 +389,6 @@ components:
       - data_vencimento
       - porcentagem_escritorio
       - processo
-      - tipo
       - valor_total
     PaginatedAdvogadoList:
       type: object
