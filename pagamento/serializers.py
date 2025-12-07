@@ -111,18 +111,26 @@ class PagamentoContratoSerializer(serializers.ModelSerializer):
 
 
 class PagamentoImplantacaoSerializer(serializers.ModelSerializer):
-    tipo = serializers.SerializerMethodField(read_only=True)
+    tipo = serializers.SerializerMethodField()
+    processo = serializers.PrimaryKeyRelatedField(
+        queryset=Processo.objects.all(), write_only=True
+    )
+    valor_total = serializers.DecimalField(
+        max_digits=10, decimal_places=2, write_only=True
+    )
+    porcentagem_escritorio = serializers.DecimalField(max_digits=5, decimal_places=2)
+    data_vencimento = serializers.DateField()
 
     class Meta:
         model = PagamentoImplantacao
         fields = [
+            "id",
             "tipo",
             "processo",
             "valor_total",
             "porcentagem_escritorio",
             "data_vencimento",
         ]
-        read_only_fields = ["tipo"]
 
     def validate(self, data):
         # validar valor_total > 0
@@ -152,7 +160,17 @@ class PagamentoImplantacaoSerializer(serializers.ModelSerializer):
         return TipoPagamento.IMPLANTACAO
 
     def create(self, validated_data):
-        validated_data["tipo"] = TipoPagamento.IMPLANTACAO
+        processo = validated_data.pop("processo")
+        tipo = validated_data.pop("tipo", TipoPagamento.IMPLANTACAO)
+        valor_total = validated_data.pop("valor_total")
+
+        pagamento = Pagamento.objects.create(
+            processo=processo,
+            tipo=tipo,
+            valor_total=valor_total,
+        )
+        validated_data["pagamento"] = pagamento
+
         return super().create(validated_data)
 
 

@@ -9,7 +9,6 @@ from pessoa.models import Advogado, Corretor
 class TipoPagamento(models.TextChoices):
     IMPLANTACAO = ("IMPLANTACAO",)
     CONTRATO = ("CONTRATO",)
-    PARCELA = ("PARCELA",)
     RPV = ("RPV",)
     AUXILIODOENCA = ("AUXILIODOENCA",)
 
@@ -25,7 +24,7 @@ class Pagamento(models.Model):
     valor_total = models.DecimalField(max_digits=10, decimal_places=2)
     criado_em = models.DateTimeField(auto_now_add=True)
     processo = models.ForeignKey(
-        "Processo", on_delete=models.DO_NOTHING, related_name="pagamentos"
+        "Processo", on_delete=models.CASCADE, related_name="pagamentos"
     )
     tipo = models.CharField(
         max_length=20,
@@ -34,25 +33,27 @@ class Pagamento(models.Model):
         blank=False,
     )
 
-    def cast(self):
-        """
-        Returns the correct subclass instance.
-        """
-        if hasattr(self, "pagamentoimplantacao"):
-            return self.pagamentoimplantacao
-        if hasattr(self, "pagamentocontrato"):
-            return self.pagamentocontrato
-        if hasattr(self, "pagamentoparcela"):
-            return self.pagamentoparcela
+    @property
+    def detalhes(self):
+        if self.tipo == TipoPagamento.IMPLANTACAO:
+            return self.implantacao
+        if self.tipo == TipoPagamento.CONTRATO:
+            return self.contrato
         # if hasattr(self, "pagamentoauxiliodoenca"):
         #     return self.pagamentoauxiliodoenca
         return self
 
-    class Meta:
-        abstract = False
+    def __call__(self, *args, **kwds):
+        return f"Pagamento {self.id} - Tipo: {self.tipo}"
 
 
-class PagamentoImplantacao(Pagamento):
+class PagamentoImplantacao(models.Model):
+    pagamento = models.OneToOneField(
+        Pagamento,
+        on_delete=models.CASCADE,
+        related_name="implantacao",
+        primary_key=True,
+    )
     porcentagem_escritorio = models.DecimalField(max_digits=5, decimal_places=2)
     data_vencimento = models.DateField(blank=False, null=False)
 
@@ -66,7 +67,13 @@ class PagamentoImplantacao(Pagamento):
         verbose_name = "Pagamento de Implantação"
 
 
-class PagamentoContrato(Pagamento):
+class PagamentoContrato(models.Model):
+    pagamento = models.OneToOneField(
+        Pagamento,
+        on_delete=models.CASCADE,
+        related_name="contrato",
+        primary_key=True,
+    )
     entrada = models.DecimalField(max_digits=10, decimal_places=2)
     valor_parcela = models.DecimalField(max_digits=10, decimal_places=2)
     numero_parcelas = models.PositiveIntegerField()
@@ -81,7 +88,7 @@ class PagamentoContrato(Pagamento):
         verbose_name = "Pagamento de Contrato"
 
 
-class PagamentoParcela(Pagamento):
+class PagamentoParcela(models.Model):
     valor_parcela = models.DecimalField(max_digits=10, decimal_places=2)
     numero_parcela = models.PositiveIntegerField()
     data_vencimento = models.DateField(blank=False, null=False)
@@ -104,14 +111,6 @@ class PagamentoParcela(Pagamento):
 
     class Meta:
         verbose_name = "Pagamento de Parcelas"
-
-
-# class PagamentoAuxilioDoenca(Pagamento):
-#     valor_mensal = models.DecimalField(max_digits=10, decimal_places=2)
-#     ativo = models.BooleanField(default=True)
-
-#     class Meta:
-#         verbose_name = "Pagamento Auxílio Doença"
 
 
 class Processo(models.Model):
