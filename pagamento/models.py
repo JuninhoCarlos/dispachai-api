@@ -78,6 +78,8 @@ class PagamentoContrato(models.Model):
     valor_parcela = models.DecimalField(max_digits=10, decimal_places=2)
     numero_parcelas = models.PositiveIntegerField()
     vencimento_entrada = models.DateField(blank=False, null=False)
+    vencimento_parcela = models.DateField(blank=True, null=True)
+
     status_entrada = models.CharField(
         max_length=20,
         choices=StatusPagamento.choices,

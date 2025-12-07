@@ -18,4 +18,5 @@ dependencies = [
 [dependency-groups]
 dev = [
     "black>=25.11.0",
+    "ipdb>=0.13.13",
 ]

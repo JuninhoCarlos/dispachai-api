@@ -24,8 +24,33 @@ class ProcessoSerializer(serializers.ModelSerializer):
         ]
 
 
-class PagamentoContratoSerializer(serializers.ModelSerializer):
-    tipo = serializers.SerializerMethodField(read_only=True)
+class PagamentoBaseSerializer(serializers.ModelSerializer):
+    processo = serializers.PrimaryKeyRelatedField(
+        queryset=Processo.objects.all(), write_only=True
+    )
+    valor_total = serializers.DecimalField(
+        max_digits=10, decimal_places=2, write_only=True
+    )
+
+    tipo = None  # to be defined in subclasses
+
+    class Meta:
+        model = Pagamento
+        fields = ["processo", "valor_total"]
+
+    def create_pagamento(self, validated_data):
+        processo = validated_data.pop("processo")
+        valor_total = validated_data.pop("valor_total")
+
+        return Pagamento.objects.create(
+            processo=processo,
+            tipo=self.tipo,
+            valor_total=valor_total,
+        )
+
+
+class PagamentoContratoSerializer(PagamentoBaseSerializer):
+    tipo = TipoPagamento.CONTRATO
     vencimento_parcela = serializers.DateField(
         write_only=True,
         required=True,
@@ -42,9 +67,7 @@ class PagamentoContratoSerializer(serializers.ModelSerializer):
             "numero_parcelas",
             "vencimento_entrada",
             "vencimento_parcela",
-            "tipo",
         ]
-        read_only_fields = ["tipo"]
 
     def validate(self, data):
         """
@@ -78,15 +101,14 @@ class PagamentoContratoSerializer(serializers.ModelSerializer):
 
         return data
 
-    def get_tipo(self, obj):
-        return TipoPagamento.CONTRATO
-
     def create(self, validated_data):
-        vencimento_parcela = validated_data.pop("vencimento_parcela")
-        validated_data["tipo"] = TipoPagamento.CONTRATO
+        vencimento_parcela = validated_data.get("vencimento_parcela")
+
+        pagamento = self.create_pagamento(validated_data)
+        validated_data["pagamento"] = pagamento
         contrato = super().create(validated_data)
 
-        # self._create_parcelas(contrato, vencimento_parcela)
+        self._create_parcelas(contrato, vencimento_parcela)
 
         return contrato
 
@@ -102,30 +124,20 @@ class PagamentoContratoSerializer(serializers.ModelSerializer):
                     data_vencimento=vencimento_parcela + relativedelta(months=i),
                     status=StatusPagamento.PLANEJADO,
                     valor_pago=None,
-                    tipo=TipoPagamento.PARCELA,
-                    processo=contrato.processo,
                 )
             )
 
         PagamentoParcela.objects.bulk_create(parcelas, batch_size=200)
 
 
-class PagamentoImplantacaoSerializer(serializers.ModelSerializer):
-    tipo = serializers.SerializerMethodField()
-    processo = serializers.PrimaryKeyRelatedField(
-        queryset=Processo.objects.all(), write_only=True
-    )
-    valor_total = serializers.DecimalField(
-        max_digits=10, decimal_places=2, write_only=True
-    )
+class PagamentoImplantacaoSerializer(PagamentoBaseSerializer):
+    tipo = TipoPagamento.IMPLANTACAO
     porcentagem_escritorio = serializers.DecimalField(max_digits=5, decimal_places=2)
     data_vencimento = serializers.DateField()
 
     class Meta:
         model = PagamentoImplantacao
         fields = [
-            "id",
-            "tipo",
             "processo",
             "valor_total",
             "porcentagem_escritorio",
@@ -156,19 +168,9 @@ class PagamentoImplantacaoSerializer(serializers.ModelSerializer):
 
         return data
 
-    def get_tipo(self, obj):
-        return TipoPagamento.IMPLANTACAO
-
     def create(self, validated_data):
-        processo = validated_data.pop("processo")
-        tipo = validated_data.pop("tipo", TipoPagamento.IMPLANTACAO)
-        valor_total = validated_data.pop("valor_total")
 
-        pagamento = Pagamento.objects.create(
-            processo=processo,
-            tipo=tipo,
-            valor_total=valor_total,
-        )
+        pagamento = self.create_pagamento(validated_data)
         validated_data["pagamento"] = pagamento
 
         return super().create(validated_data)
@@ -178,7 +180,6 @@ class PagamentoImplantacaoReaderSerializer(serializers.ModelSerializer):
     class Meta:
         model = PagamentoImplantacao
         fields = [
-            "id",
             "valor_total",
             "porcentagem_escritorio",
             "data_vencimento",
