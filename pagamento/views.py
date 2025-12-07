@@ -1,8 +1,9 @@
-from rest_framework.generics import ListCreateAPIView, CreateAPIView, ListAPIView
+from django.db import models
+from rest_framework.generics import CreateAPIView, ListAPIView
 from identity.permissions import IsSuperUser
 from rest_framework.permissions import IsAuthenticated
 
-from .models import Processo, PagamentoImplantacao, PagamentoContrato
+from .models import Pagamento, Processo, PagamentoImplantacao, PagamentoContrato
 from .serializers import (
     ProcessoSerializer,
     ProcessoReaderSerializer,
@@ -31,8 +32,10 @@ class ContratoCreateAPIView(CreateAPIView):
 
 class PagamentoListAPIView(ListAPIView):
     queryset = Processo.objects.select_related("advogado", "corretor").prefetch_related(
-        "pagamentos__pagamentoimplantacao",
-        "pagamentos__pagamentocontrato",
+        models.Prefetch(
+            "pagamentos", Pagamento.objects.select_related("implantacao", "contrato")
+        )
     )
+
     serializer_class = ProcessoReaderSerializer
     permission_classes = [IsAuthenticated]

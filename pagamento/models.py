@@ -39,8 +39,6 @@ class Pagamento(models.Model):
             return self.implantacao
         if self.tipo == TipoPagamento.CONTRATO:
             return self.contrato
-        # if hasattr(self, "pagamentoauxiliodoenca"):
-        #     return self.pagamentoauxiliodoenca
         return self
 
     def __call__(self, *args, **kwds):

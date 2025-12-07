@@ -180,11 +180,10 @@ class PagamentoImplantacaoReaderSerializer(serializers.ModelSerializer):
     class Meta:
         model = PagamentoImplantacao
         fields = [
-            "valor_total",
+            "pagamento",
             "porcentagem_escritorio",
             "data_vencimento",
             "status",
-            "criado_em",
         ]
 
 
@@ -192,14 +191,13 @@ class PagamentoContratoReaderSerializer(serializers.ModelSerializer):
     class Meta:
         model = PagamentoContrato
         fields = [
-            "id",
-            "valor_total",
+            "pagamento",
             "entrada",
             "valor_parcela",
             "numero_parcelas",
             "vencimento_entrada",
             "status_entrada",
-            "criado_em",
+            "vencimento_parcela",
         ]
 
 
@@ -216,12 +214,11 @@ class PagamentoSerializer(serializers.ModelSerializer):
         ]
 
     def get_detalhe(self, obj):
-        obj = obj.cast()
-        if isinstance(obj, PagamentoImplantacao):
-            return PagamentoImplantacaoReaderSerializer(obj).data
+        if obj.tipo == TipoPagamento.IMPLANTACAO:
+            return PagamentoImplantacaoReaderSerializer(obj.detalhes).data
 
-        if isinstance(obj, PagamentoContrato):
-            return PagamentoContratoReaderSerializer(obj).data
+        if obj.tipo == TipoPagamento.CONTRATO:
+            return PagamentoContratoReaderSerializer(obj.detalhes).data
 
         # fallback
         return None
