@@ -10,7 +10,23 @@ services:
       - "5432:5432"
     #volumes:
     #  - pgdata:/var/lib/postgresql/data
-
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: django-api
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/appdb
+      TOKEN_TTL_HOURS: 24
+    ports:
+      - "8000:8000"
+    command: >
+      sh -c "
+        uv run python manage.py migrate  &&
+        uv run python manage.py runserver 0.0.0.0:8000
+      "
 
 volumes:
   pgdata:
