@@ -152,6 +152,8 @@ class Processo(models.Model):
         ],
     )
 
+    observacao = models.TextField(blank=True, null=True, default=None)
+
     criado_em = models.DateTimeField(default=timezone.now)
 
     def __str__(self):

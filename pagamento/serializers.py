@@ -233,6 +233,7 @@ class ProcessoSerializer(serializers.ModelSerializer):
             "advogado",
             "corretor",
             "criado_em",
+            "observacao",
         ]
 
 
