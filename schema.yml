@@ -74,12 +74,20 @@ paths:
         description: Number of results to return per page.
         schema:
           type: integer
+      - in: query
+        name: month
+        schema:
+          type: number
       - name: offset
         required: false
         in: query
         description: The initial index from which to return the results.
         schema:
           type: integer
+      - in: query
+        name: year
+        schema:
+          type: number
       tags:
       - pagamento
       security:
@@ -472,6 +480,12 @@ components:
           type: integer
         corretor:
           type: integer
+          nullable: true
+        criado_em:
+          type: string
+          format: date-time
+        observacao:
+          type: string
           nullable: true
       required:
       - advogado
