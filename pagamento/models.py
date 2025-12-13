@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.utils import timezone
 
 from pessoa.models import Advogado, Corretor
 
@@ -151,7 +152,7 @@ class Processo(models.Model):
         ],
     )
 
-    criado_em = models.DateTimeField(auto_now_add=True)
+    criado_em = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
         return f"Processo {self.nome_processo} - Advogado: {self.advogado.nome}"
