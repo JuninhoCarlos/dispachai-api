@@ -42,7 +42,7 @@ class Pagamento(models.Model):
             return self.contrato
         return self
 
-    def __call__(self, *args, **kwds):
+    def __str__(self, *args, **kwds):
         return f"Pagamento {self.id} - Tipo: {self.tipo}"
 
 
@@ -155,6 +155,3 @@ class Processo(models.Model):
     observacao = models.TextField(blank=True, null=True, default=None)
 
     criado_em = models.DateTimeField(default=timezone.now)
-
-    def __str__(self):
-        return f"Processo {self.nome_processo} - Advogado: {self.advogado.nome}"

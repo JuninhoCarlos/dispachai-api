@@ -187,18 +187,52 @@ class PagamentoImplantacaoReaderSerializer(serializers.ModelSerializer):
         ]
 
 
+class ParcelasSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PagamentoParcela
+        fields = [
+            "numero_parcela",
+            "valor_parcela",
+            "data_vencimento",
+            "status",
+            "valor_pago",
+        ]
+
+
+class EntradaSerializer(serializers.Serializer):
+    valor = serializers.DecimalField(max_digits=10, decimal_places=2)
+    vencimento = serializers.DateField()
+    status = serializers.ChoiceField(choices=StatusPagamento.choices)
+
+
 class PagamentoContratoReaderSerializer(serializers.ModelSerializer):
+    parcelas = ParcelasSerializer(
+        source="parcelas_filtradas",
+        many=True,
+        read_only=True,
+    )
+    entrada = serializers.SerializerMethodField()
+
     class Meta:
         model = PagamentoContrato
         fields = [
             "pagamento",
-            "entrada",
             "valor_parcela",
             "numero_parcelas",
             "vencimento_entrada",
-            "status_entrada",
             "vencimento_parcela",
+            "entrada",
+            "parcelas",
         ]
+
+    def get_entrada(self, obj):
+        return EntradaSerializer(
+            {
+                "valor": obj.entrada,
+                "vencimento": obj.vencimento_entrada,
+                "status": obj.status_entrada,
+            }
+        ).data
 
 
 class PagamentoSerializer(serializers.ModelSerializer):

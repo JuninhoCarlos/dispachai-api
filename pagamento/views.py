@@ -2,6 +2,9 @@ from django.db import models
 from rest_framework.generics import CreateAPIView, ListAPIView
 from identity.permissions import IsSuperUser
 from rest_framework.permissions import IsAuthenticated
+from django_filters.rest_framework import DjangoFilterBackend
+
+from pagamento.filter import ProcessoMonthYearFilter
 
 from .models import Pagamento, Processo, PagamentoImplantacao, PagamentoContrato
 from .serializers import (
@@ -39,3 +42,5 @@ class PagamentoListAPIView(ListAPIView):
 
     serializer_class = ProcessoReaderSerializer
     permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = ProcessoMonthYearFilter

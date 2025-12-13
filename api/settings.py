@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "knox",
     "drf_spectacular",
+    "django_filters",
     "identity",
     "pessoa",
     "pagamento",
@@ -55,6 +56,9 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 25,
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "knox.auth.TokenAuthentication",
+    ],
+    "DEFAULT_FILTER_BACKENDS": [
+        "django_filters.rest_framework.DjangoFilterBackend",
     ],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
