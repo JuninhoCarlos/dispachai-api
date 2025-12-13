@@ -24,3 +24,5 @@ urlpatterns = [
     path("api/", include("pessoa.urls")),
     path("api/", include("pagamento.urls")),
 ]
+
+urlpatterns += [path("silk/", include("silk.urls", namespace="silk"))]

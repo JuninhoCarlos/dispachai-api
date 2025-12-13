@@ -9,6 +9,7 @@ dependencies = [
     "django-cors-headers>=4.9.0",
     "django-filter>=25.2",
     "django-rest-knox>=5.0.2",
+    "django-silk>=5.4.3",
     "djangorestframework>=3.16.1",
     "drf-spectacular>=0.29.0",
     "psycopg2-binary>=2.9.11",
