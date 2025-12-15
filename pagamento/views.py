@@ -34,11 +34,8 @@ class ContratoCreateAPIView(CreateAPIView):
 
 
 class PagamentoListAPIView(ListAPIView):
-    queryset = Processo.objects.select_related("advogado", "corretor").prefetch_related(
-        models.Prefetch(
-            "pagamentos", Pagamento.objects.select_related("implantacao", "contrato")
-        )
-    )
+    # the prefetch related is done in the filter to optimize the queries
+    queryset = Processo.objects.select_related("advogado", "corretor")
 
     serializer_class = ProcessoReaderSerializer
     permission_classes = [IsAuthenticated]

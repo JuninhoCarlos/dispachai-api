@@ -219,13 +219,14 @@ class PagamentoContratoReaderSerializer(serializers.ModelSerializer):
             "pagamento",
             "valor_parcela",
             "numero_parcelas",
-            "vencimento_entrada",
-            "vencimento_parcela",
             "entrada",
             "parcelas",
         ]
 
     def get_entrada(self, obj):
+        if not getattr(obj, "entrada_filter", False):
+            return None
+
         return EntradaSerializer(
             {
                 "valor": obj.entrada,
@@ -233,6 +234,12 @@ class PagamentoContratoReaderSerializer(serializers.ModelSerializer):
                 "status": obj.status_entrada,
             }
         ).data
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if not instance.entrada_filter:
+            data.pop("entrada", None)
+        return data
 
 
 class PagamentoSerializer(serializers.ModelSerializer):
@@ -252,7 +259,8 @@ class PagamentoSerializer(serializers.ModelSerializer):
             return PagamentoImplantacaoReaderSerializer(obj.detalhes).data
 
         if obj.tipo == TipoPagamento.CONTRATO:
-            return PagamentoContratoReaderSerializer(obj.detalhes).data
+            contrato = getattr(obj, "contrato_annotado", None) or obj.detalhes
+            return PagamentoContratoReaderSerializer(contrato).data
 
         # fallback
         return None
