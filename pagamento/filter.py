@@ -6,12 +6,15 @@ from .models import PagamentoParcela, Processo
 
 
 class ProcessoMonthYearFilter(django_filters.FilterSet):
-    year = django_filters.NumberFilter()
-    month = django_filters.NumberFilter()
+    year = django_filters.NumberFilter(method="filter_noop")
+    month = django_filters.NumberFilter(method="filter_noop")
 
     class Meta:
         model = Processo
         fields = []
+
+    def filter_noop(self, queryset, name, value):
+        return queryset
 
     @property
     def qs(self):
