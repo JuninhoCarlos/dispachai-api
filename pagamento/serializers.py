@@ -298,3 +298,13 @@ class ProcessoReaderSerializer(serializers.ModelSerializer):
     def get_pagamentos(self, obj):
         pagamentos = obj.pagamentos.all()
         return PagamentoSerializer(pagamentos, many=True).data
+
+
+class PagarSerializer(serializers.Serializer):
+    valor_pago = serializers.DecimalField(max_digits=10, decimal_places=2)
+    data_pagamento = serializers.DateField()
+
+    def validate_valor_pago(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("O valor pago deve ser maior que zero.")
+        return value

@@ -10,6 +10,8 @@ from pessoa.models import Advogado, Corretor
 class TipoPagamento(models.TextChoices):
     IMPLANTACAO = ("IMPLANTACAO",)
     CONTRATO = ("CONTRATO",)
+    PARCELA = ("CONTRATO_PARCELA",)
+    ENTRADA = ("CONTRATO_ENTRADA",)
     RPV = ("RPV",)
     AUXILIODOENCA = ("AUXILIODOENCA",)
 
@@ -155,3 +157,18 @@ class Processo(models.Model):
     observacao = models.TextField(blank=True, null=True, default=None)
 
     criado_em = models.DateTimeField(default=timezone.now)
+
+
+class PagamentoEvento(models.Model):
+    # id do pagamento especifico que ta sendo registrado o evento
+    pagamento = models.IntegerField()
+    valor_recebido = models.DecimalField(max_digits=10, decimal_places=2)
+    data_pagamento = models.DateField(blank=False, null=False)
+    data_cadastro_pagamento = models.DateTimeField(auto_now_add=True)
+
+    tipo = models.CharField(
+        max_length=20,
+        choices=TipoPagamento.choices,
+        null=False,
+        blank=False,
+    )
