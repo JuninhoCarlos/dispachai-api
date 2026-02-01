@@ -24,7 +24,6 @@ class StatusPagamento(models.TextChoices):
 
 
 class Pagamento(models.Model):
-    valor_total = models.DecimalField(max_digits=10, decimal_places=2)
     criado_em = models.DateTimeField(auto_now_add=True)
     processo = models.ForeignKey(
         "Processo", on_delete=models.CASCADE, related_name="pagamentos"
@@ -55,6 +54,7 @@ class PagamentoImplantacao(models.Model):
         related_name="implantacao",
         primary_key=True,
     )
+    valor_total = models.DecimalField(max_digits=10, decimal_places=2, default=None)
     porcentagem_escritorio = models.DecimalField(max_digits=5, decimal_places=2)
     data_vencimento = models.DateField(blank=False, null=False)
 
@@ -69,12 +69,6 @@ class PagamentoImplantacao(models.Model):
 
 
 class PagamentoContrato(models.Model):
-    pagamento = models.OneToOneField(
-        Pagamento,
-        on_delete=models.CASCADE,
-        related_name="contrato",
-        primary_key=True,
-    )
     entrada = models.DecimalField(max_digits=10, decimal_places=2)
     valor_parcela = models.DecimalField(max_digits=10, decimal_places=2)
     numero_parcelas = models.PositiveIntegerField()
@@ -91,17 +85,17 @@ class PagamentoContrato(models.Model):
         verbose_name = "Pagamento de Contrato"
 
 
+class TipoParcela(models.TextChoices):
+    ENTRADA = "ENTRADA", "Entrada"
+    PARCELA = "PARCELA", "Parcela"
+
+
 class PagamentoParcela(models.Model):
-    valor_parcela = models.DecimalField(max_digits=10, decimal_places=2)
-    numero_parcela = models.PositiveIntegerField()
-    data_vencimento = models.DateField(blank=False, null=False)
-    status = models.CharField(
-        max_length=20,
-        choices=StatusPagamento.choices,
-        default=StatusPagamento.PLANEJADO,
-    )
-    valor_pago = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, blank=True
+    pagamento = models.OneToOneField(
+        Pagamento,
+        on_delete=models.CASCADE,
+        related_name="parcela",
+        primary_key=True,
     )
 
     contrato = models.ForeignKey(
@@ -110,6 +104,22 @@ class PagamentoParcela(models.Model):
         related_name="parcelas",
         null=False,
         blank=False,
+    )
+
+    tipo = models.CharField(
+        max_length=10,
+        choices=TipoParcela.choices,
+        default=TipoParcela.PARCELA,
+    )
+
+    valor_parcela = models.DecimalField(max_digits=10, decimal_places=2)
+    numero_parcela = models.PositiveIntegerField(blank=True, null=True)
+    data_vencimento = models.DateField(blank=False, null=False)
+
+    status = models.CharField(
+        max_length=20,
+        choices=StatusPagamento.choices,
+        default=StatusPagamento.PLANEJADO,
     )
 
     class Meta:
@@ -161,14 +171,11 @@ class Processo(models.Model):
 
 class PagamentoEvento(models.Model):
     # id do pagamento especifico que ta sendo registrado o evento
-    pagamento = models.IntegerField()
+    pagamento = models.ForeignKey(
+        Pagamento,
+        on_delete=models.PROTECT,
+        related_name="liquidacoes",
+    )
     valor_recebido = models.DecimalField(max_digits=10, decimal_places=2)
     data_pagamento = models.DateField(blank=False, null=False)
-    data_cadastro_pagamento = models.DateTimeField(auto_now_add=True)
-
-    tipo = models.CharField(
-        max_length=20,
-        choices=TipoPagamento.choices,
-        null=False,
-        blank=False,
-    )
+    criado_em = models.DateTimeField(auto_now_add=True)

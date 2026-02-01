@@ -7,6 +7,7 @@ from .models import (
     PagamentoContrato,
     Processo,
     TipoPagamento,
+    TipoParcela,
     PagamentoParcela,
     StatusPagamento,
     Pagamento,
@@ -28,9 +29,6 @@ class PagamentoBaseSerializer(serializers.ModelSerializer):
     processo = serializers.PrimaryKeyRelatedField(
         queryset=Processo.objects.all(), write_only=True
     )
-    valor_total = serializers.DecimalField(
-        max_digits=10, decimal_places=2, write_only=True
-    )
 
     tipo = None  # to be defined in subclasses
 
@@ -38,23 +36,24 @@ class PagamentoBaseSerializer(serializers.ModelSerializer):
         model = Pagamento
         fields = ["processo", "valor_total"]
 
-    def create_pagamento(self, validated_data):
+    def create_pagamento(self, validated_data, tipo=None):
         processo = validated_data.pop("processo")
-        valor_total = validated_data.pop("valor_total")
 
         return Pagamento.objects.create(
             processo=processo,
-            tipo=self.tipo,
-            valor_total=valor_total,
+            tipo=tipo or self.tipo,
         )
 
 
 class PagamentoContratoSerializer(PagamentoBaseSerializer):
-    tipo = TipoPagamento.CONTRATO
     vencimento_parcela = serializers.DateField(
         write_only=True,
         required=True,
         help_text="Data de vencimento da primeira parcela.",
+    )
+
+    valor_total = serializers.DecimalField(
+        max_digits=10, decimal_places=2, write_only=True
     )
 
     class Meta:
@@ -103,27 +102,47 @@ class PagamentoContratoSerializer(PagamentoBaseSerializer):
 
     def create(self, validated_data):
         vencimento_parcela = validated_data.get("vencimento_parcela")
+        processo = validated_data.pop("processo")
+        valor_total = validated_data.pop("valor_total")
 
-        pagamento = self.create_pagamento(validated_data)
-        validated_data["pagamento"] = pagamento
         contrato = super().create(validated_data)
 
-        self._create_parcelas(contrato, vencimento_parcela)
+        self._create_entrada(contrato, processo)
+        self._create_parcelas(contrato, processo, vencimento_parcela)
 
         return contrato
 
-    def _create_parcelas(self, contrato, vencimento_parcela):
+    def _create_entrada(self, contrato, processo):
+        pagamento_entrada = Pagamento.objects.create(
+            processo=processo, tipo=TipoPagamento.ENTRADA
+        )
+
+        PagamentoParcela.objects.create(
+            pagamento=pagamento_entrada,
+            contrato=contrato,
+            valor_parcela=contrato.entrada,
+            tipo=TipoParcela.ENTRADA,
+            numero_parcela=None,
+            data_vencimento=contrato.vencimento_entrada,
+            status=StatusPagamento.PLANEJADO,
+        )
+
+    def _create_parcelas(self, contrato, processo, vencimento_parcela):
         parcelas = []
 
         for i in range(contrato.numero_parcelas):
+            pagamento = Pagamento.objects.create(
+                processo=processo, tipo=TipoPagamento.PARCELA
+            )
             parcelas.append(
                 PagamentoParcela(
+                    pagamento=pagamento,
                     contrato=contrato,
                     valor_parcela=contrato.valor_parcela,
                     numero_parcela=i + 1,
                     data_vencimento=vencimento_parcela + relativedelta(months=i),
+                    tipo=TipoParcela.PARCELA,
                     status=StatusPagamento.PLANEJADO,
-                    valor_pago=None,
                 )
             )
 
