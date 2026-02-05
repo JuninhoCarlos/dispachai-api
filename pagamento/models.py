@@ -39,8 +39,6 @@ class Pagamento(models.Model):
     def detalhes(self):
         if self.tipo == TipoPagamento.IMPLANTACAO:
             return self.implantacao
-        if self.tipo == TipoPagamento.CONTRATO:
-            return self.contrato
         return self
 
     def __str__(self, *args, **kwds):
@@ -94,7 +92,7 @@ class PagamentoParcela(models.Model):
     pagamento = models.OneToOneField(
         Pagamento,
         on_delete=models.CASCADE,
-        related_name="parcela",
+        related_name="parcelas_contrato",
         primary_key=True,
     )
 

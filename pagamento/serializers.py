@@ -195,96 +195,6 @@ class PagamentoImplantacaoSerializer(PagamentoBaseSerializer):
         return super().create(validated_data)
 
 
-class PagamentoImplantacaoReaderSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = PagamentoImplantacao
-        fields = [
-            "pagamento",
-            "porcentagem_escritorio",
-            "data_vencimento",
-            "status",
-        ]
-
-
-class ParcelasSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = PagamentoParcela
-        fields = [
-            "numero_parcela",
-            "valor_parcela",
-            "data_vencimento",
-            "status",
-            "valor_pago",
-        ]
-
-
-class EntradaSerializer(serializers.Serializer):
-    valor = serializers.DecimalField(max_digits=10, decimal_places=2)
-    vencimento = serializers.DateField()
-    status = serializers.ChoiceField(choices=StatusPagamento.choices)
-
-
-class PagamentoContratoReaderSerializer(serializers.ModelSerializer):
-    parcelas = ParcelasSerializer(
-        source="parcelas_filtradas",
-        many=True,
-        read_only=True,
-    )
-    entrada = serializers.SerializerMethodField()
-
-    class Meta:
-        model = PagamentoContrato
-        fields = [
-            "pagamento",
-            "valor_parcela",
-            "numero_parcelas",
-            "entrada",
-            "parcelas",
-        ]
-
-    def get_entrada(self, obj):
-        if not getattr(obj, "entrada_filter", False):
-            return None
-
-        return EntradaSerializer(
-            {
-                "valor": obj.entrada,
-                "vencimento": obj.vencimento_entrada,
-                "status": obj.status_entrada,
-            }
-        ).data
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        if not instance.entrada_filter:
-            data.pop("entrada", None)
-        return data
-
-
-class PagamentoSerializer(serializers.ModelSerializer):
-    detalhe = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Pagamento
-        fields = [
-            "valor_total",
-            "criado_em",
-            "tipo",
-            "detalhe",
-        ]
-
-    def get_detalhe(self, obj):
-        if obj.tipo == TipoPagamento.IMPLANTACAO:
-            return PagamentoImplantacaoReaderSerializer(obj.detalhes).data
-
-        if obj.tipo == TipoPagamento.CONTRATO:
-            contrato = getattr(obj, "contrato_annotado", None) or obj.detalhes
-            return PagamentoContratoReaderSerializer(contrato).data
-
-        # fallback
-        return None
-
-
 class ProcessoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Processo
@@ -296,27 +206,6 @@ class ProcessoSerializer(serializers.ModelSerializer):
             "criado_em",
             "observacao",
         ]
-
-
-class ProcessoReaderSerializer(serializers.ModelSerializer):
-    id_processo = serializers.IntegerField(source="id", read_only=True)
-    pagamentos = serializers.SerializerMethodField()
-    advogado = serializers.CharField(source="advogado.nome", read_only=True)
-    corretor = serializers.CharField(source="corretor.nome", read_only=True)
-
-    class Meta:
-        model = Processo
-        fields = [
-            "id_processo",
-            "cliente",
-            "advogado",
-            "corretor",
-            "pagamentos",
-        ]
-
-    def get_pagamentos(self, obj):
-        pagamentos = obj.pagamentos.all()
-        return PagamentoSerializer(pagamentos, many=True).data
 
 
 class PagarSerializer(serializers.Serializer):

@@ -4,18 +4,26 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
+from django.db.models import Prefetch
 
 from pagamento.filter import ProcessoMonthYearFilter
 from .services.pagamento_service import PagamentoService
 
-from .models import Pagamento, Processo, PagamentoImplantacao, PagamentoContrato
+from .models import (
+    Pagamento,
+    Processo,
+    PagamentoImplantacao,
+    PagamentoContrato,
+    TipoPagamento,
+)
 from .serializers import (
     ProcessoSerializer,
-    ProcessoReaderSerializer,
     PagamentoImplantacaoSerializer,
     PagamentoContratoSerializer,
     PagarSerializer,
 )
+
+from .read.serializers import PagamentoReaderSerializer
 
 
 class ProcessoListCreateAPIView(CreateAPIView):
@@ -59,9 +67,22 @@ class PagarImplantacaoGenericView(GenericAPIView):
 
 class PagamentoListAPIView(ListAPIView):
     # the prefetch related is done in the filter to optimize the queries
-    queryset = Processo.objects.select_related("advogado", "corretor")
+    # Fetch only IMPLANTACAO and ENTRADA types
+    queryset = (
+        Pagamento.objects.filter(
+            tipo__in=[TipoPagamento.IMPLANTACAO, TipoPagamento.ENTRADA]
+        )
+        .select_related(
+            "processo",
+            "processo__advogado",
+            "processo__corretor",
+            "implantacao",
+            "parcelas_contrato__contrato",
+        )
+        .distinct()
+    )
 
-    serializer_class = ProcessoReaderSerializer
+    serializer_class = PagamentoReaderSerializer
     permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend]
-    filterset_class = ProcessoMonthYearFilter
+    # filter_backends = [DjangoFilterBackend]
+    # filterset_class = ProcessoMonthYearFilter
