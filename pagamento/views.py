@@ -68,19 +68,13 @@ class PagarImplantacaoGenericView(GenericAPIView):
 class PagamentoListAPIView(ListAPIView):
     # the prefetch related is done in the filter to optimize the queries
     # Fetch only IMPLANTACAO and ENTRADA types
-    queryset = (
-        Pagamento.objects.filter(
-            tipo__in=[TipoPagamento.IMPLANTACAO, TipoPagamento.ENTRADA]
-        )
-        .select_related(
-            "processo",
-            "processo__advogado",
-            "processo__corretor",
-            "implantacao",
-            "parcelas_contrato__contrato",
-        )
-        .distinct()
-    )
+    queryset = Pagamento.objects.select_related(
+        "processo",
+        "processo__advogado",
+        "processo__corretor",
+        "implantacao",
+        "parcelas_contrato__contrato",
+    ).distinct()
 
     serializer_class = PagamentoReaderSerializer
     permission_classes = [IsAuthenticated]
