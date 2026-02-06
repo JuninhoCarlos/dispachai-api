@@ -1,23 +1,20 @@
-# filters.py
 import django_filters
 from django.utils import timezone
-from django.db.models import Q, Prefetch, BooleanField, Case, When, Value
+from django.db.models import Q
 
 from .models import (
-    Processo,
     Pagamento,
-    PagamentoContrato,
-    PagamentoParcela,
+    TipoPagamento,
 )
 
 
-class ProcessoMonthYearFilter(django_filters.FilterSet):
+class PagamentoMonthYearFilter(django_filters.FilterSet):
     year = django_filters.NumberFilter(method="filter_noop")
     month = django_filters.NumberFilter(method="filter_noop")
 
     class Meta:
-        model = Processo
-        fields = []
+        model = Pagamento
+        fields = ["year", "month"]
 
     def filter_noop(self, queryset, name, value):
         return queryset
@@ -27,64 +24,31 @@ class ProcessoMonthYearFilter(django_filters.FilterSet):
         qs = super().qs
         now = timezone.now()
 
+        # Get the year and month from the filter data or default to the current year/month
         year = int(self.data.get("year", now.year))
         month = int(self.data.get("month", now.month))
 
-        pagamentos_qs = (
-            Pagamento.objects.select_related(
-                "implantacao",
-                "contrato",
+        # Filter pagamentos by their respective types and date fields
+        pagamentos_qs = qs.filter(
+            Q(
+                tipo=TipoPagamento.IMPLANTACAO,
+                implantacao__data_vencimento__year=year,
+                implantacao__data_vencimento__month=month,
             )
-            .filter(
-                Q(
-                    implantacao__data_vencimento__year=year,
-                    implantacao__data_vencimento__month=month,
-                )
-                | Q(
-                    contrato__vencimento_entrada__year=year,
-                    contrato__vencimento_entrada__month=month,
-                )
-                | Q(
-                    contrato__parcelas__data_vencimento__year=year,
-                    contrato__parcelas__data_vencimento__month=month,
-                )
+            | Q(
+                tipo=TipoPagamento.ENTRADA,
+                parcelas_contrato__data_vencimento__year=year,
+                parcelas_contrato__data_vencimento__month=month,
             )
-            .distinct()
-        )
-
-        qs = qs.filter(pagamentos__in=pagamentos_qs).distinct()
-
-        parcelas_qs = PagamentoParcela.objects.filter(
-            data_vencimento__year=year,
-            data_vencimento__month=month,
-        )
-
-        contratos_qs = PagamentoContrato.objects.annotate(
-            entrada_filter=Case(
-                When(
-                    vencimento_entrada__year=year,
-                    vencimento_entrada__month=month,
-                    then=Value(True),
-                ),
-                default=Value(False),
-                output_field=BooleanField(),
+            | Q(
+                tipo=TipoPagamento.PARCELA,
+                parcelas_contrato__data_vencimento__year=year,
+                parcelas_contrato__data_vencimento__month=month,
             )
-        ).prefetch_related(
-            Prefetch(
-                "parcelas",
-                queryset=parcelas_qs,
-                to_attr="parcelas_filtradas",
-            )
-        )
+        ).distinct()
 
-        return qs.prefetch_related(
-            Prefetch(
-                "pagamentos",
-                queryset=pagamentos_qs,
-            ),
-            Prefetch(
-                "pagamentos__contrato",
-                queryset=contratos_qs,
-                to_attr="contrato_annotado",
-            ),
+        # Prefetch related data for optimized queries
+        return pagamentos_qs.select_related(
+            "implantacao",
+            "parcelas_contrato__contrato",
         )

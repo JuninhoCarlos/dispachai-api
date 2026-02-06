@@ -6,7 +6,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
 from django.db.models import Prefetch
 
-from pagamento.filter import ProcessoMonthYearFilter
+from pagamento.filter import PagamentoMonthYearFilter
 from .services.pagamento_service import PagamentoService
 
 from .models import (
@@ -78,5 +78,5 @@ class PagamentoListAPIView(ListAPIView):
 
     serializer_class = PagamentoReaderSerializer
     permission_classes = [IsAuthenticated]
-    # filter_backends = [DjangoFilterBackend]
-    # filterset_class = ProcessoMonthYearFilter
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = PagamentoMonthYearFilter

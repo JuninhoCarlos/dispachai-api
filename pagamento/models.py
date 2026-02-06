@@ -9,11 +9,10 @@ from pessoa.models import Advogado, Corretor
 
 class TipoPagamento(models.TextChoices):
     IMPLANTACAO = ("IMPLANTACAO",)
-    CONTRATO = ("CONTRATO",)
     PARCELA = ("CONTRATO_PARCELA",)
     ENTRADA = ("CONTRATO_ENTRADA",)
-    RPV = ("RPV",)
-    AUXILIODOENCA = ("AUXILIODOENCA",)
+    # RPV = ("RPV",)
+    # AUXILIODOENCA = ("AUXILIODOENCA",)
 
 
 class StatusPagamento(models.TextChoices):
