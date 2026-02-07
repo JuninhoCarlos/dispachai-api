@@ -91,7 +91,7 @@ class PagamentoParcela(models.Model):
     pagamento = models.OneToOneField(
         Pagamento,
         on_delete=models.CASCADE,
-        related_name="parcelas_contrato",
+        related_name="parcela",
         primary_key=True,
     )
 

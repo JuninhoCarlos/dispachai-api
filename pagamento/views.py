@@ -44,22 +44,27 @@ class ContratoCreateAPIView(CreateAPIView):
     permission_classes = [IsSuperUser]
 
 
-class PagarImplantacaoGenericView(GenericAPIView):
+class PagarPagamentosGenericView(GenericAPIView):
     serializer_class = PagarSerializer
     permission_classes = [IsSuperUser]
 
-    def post(self, request, pk):
+    queryset = Pagamento.objects.select_related(
+        "implantacao",  # Only include fields that are used
+        "parcela__contrato",
+    )
+
+    def post(self, request, pagamento_id):
 
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        implantacao = get_object_or_404(PagamentoImplantacao, pagamento_id=pk)
+        pagamento = get_object_or_404(self.get_queryset(), id=pagamento_id)
 
         valor_pago = serializer.validated_data["valor_pago"]
         data_pagamento = serializer.validated_data["data_pagamento"]
 
-        PagamentoService.pagar_implantacao(
-            implantacao, valor_pago=valor_pago, data_pagamento=data_pagamento
+        PagamentoService.pagar(
+            pagamento, valor_pago=valor_pago, data_pagamento=data_pagamento
         )
 
         return Response({"status": "OK"})
@@ -73,7 +78,7 @@ class PagamentoListAPIView(ListAPIView):
         "processo__advogado",
         "processo__corretor",
         "implantacao",
-        "parcelas_contrato__contrato",
+        "parcela__contrato",
     ).distinct()
 
     serializer_class = PagamentoReaderSerializer

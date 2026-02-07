@@ -1,7 +1,9 @@
+from datetime import date
 from rest_framework import serializers
 from ..models import (
     Pagamento,
     PagamentoImplantacao,
+    StatusPagamento,
     TipoPagamento,
     PagamentoParcela,
 )
@@ -18,7 +20,20 @@ class PagamentoImplantacaoReaderSerializer(serializers.ModelSerializer):
         ]
 
 
-class ParcelasSerializer(serializers.ModelSerializer):
+class StatusMixin:
+    def get_status(self, obj):
+        if obj.data_vencimento < date.today() and (
+            obj.status != StatusPagamento.PAGO
+            or obj.status != StatusPagamento.PARCIALMENTE_PAGO
+        ):
+            return StatusPagamento.ATRASADO
+
+        return obj.status
+
+
+class ParcelasSerializer(StatusMixin, serializers.ModelSerializer):
+    status = serializers.SerializerMethodField()
+
     class Meta:
         model = PagamentoParcela
         fields = [
@@ -29,12 +44,15 @@ class ParcelasSerializer(serializers.ModelSerializer):
         ]
 
 
-class PagamentoParcelaReaderSerializer(serializers.ModelSerializer):
+class PagamentoParcelaReaderSerializer(StatusMixin, serializers.ModelSerializer):
+    status = serializers.SerializerMethodField()
+
     class Meta:
         model = PagamentoParcela
         fields = [
             "tipo",
             "contrato",
+            "pagamento",
             "valor_parcela",
             "numero_parcela",
             "data_vencimento",
@@ -71,9 +89,7 @@ class PagamentoReaderSerializer(serializers.ModelSerializer):
             ).data
         # This fetch a contrato in Pagamentos table
         elif instance.tipo in [TipoPagamento.ENTRADA, TipoPagamento.PARCELA]:
-            data["detalhe"] = PagamentoParcelaReaderSerializer(
-                instance.parcelas_contrato
-            ).data
+            data["detalhe"] = PagamentoParcelaReaderSerializer(instance.parcela).data
         else:
             data["detalhe"] = None  # Default to None if no matching type
 

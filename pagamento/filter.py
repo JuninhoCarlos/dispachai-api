@@ -37,18 +37,18 @@ class PagamentoMonthYearFilter(django_filters.FilterSet):
             )
             | Q(
                 tipo=TipoPagamento.ENTRADA,
-                parcelas_contrato__data_vencimento__year=year,
-                parcelas_contrato__data_vencimento__month=month,
+                parcela__data_vencimento__year=year,
+                parcela__data_vencimento__month=month,
             )
             | Q(
                 tipo=TipoPagamento.PARCELA,
-                parcelas_contrato__data_vencimento__year=year,
-                parcelas_contrato__data_vencimento__month=month,
+                parcela__data_vencimento__year=year,
+                parcela__data_vencimento__month=month,
             )
         ).distinct()
 
         # Prefetch related data for optimized queries
         return pagamentos_qs.select_related(
             "implantacao",
-            "parcelas_contrato__contrato",
+            "parcela__contrato",
         )
