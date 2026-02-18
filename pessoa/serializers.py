@@ -5,7 +5,15 @@ from .models import Advogado, Corretor
 class AdvogadoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Advogado
-        fields = ["id", "nome", "oab_numero", "email", "telefone", "comissao_padrao"]
+        fields = [
+            "id",
+            "nome",
+            "oab_numero",
+            "email",
+            "telefone",
+            "comissao_padrao",
+            "chave_pix",
+        ]
 
 
 class CorretorSerializer(serializers.ModelSerializer):
