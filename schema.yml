@@ -97,7 +97,39 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaginatedProcessoReaderList'
+                $ref: '#/components/schemas/PaginatedPagamentoReaderList'
+          description: ''
+  /api/pagamento/{pagamento_id}/pagar:
+    post:
+      operationId: pagamento_pagar_create
+      parameters:
+      - in: path
+        name: pagamento_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - pagamento
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Pagar'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Pagar'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Pagar'
+        required: true
+      security:
+      - knoxApiToken: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pagar'
           description: ''
   /api/pagamento/contrato:
     post:
@@ -385,7 +417,6 @@ components:
           type: string
           format: decimal
           pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
-          writeOnly: true
         porcentagem_escritorio:
           type: string
           format: decimal
@@ -397,7 +428,34 @@ components:
       - data_vencimento
       - porcentagem_escritorio
       - processo
-      - valor_total
+    PagamentoReader:
+      type: object
+      properties:
+        tipo:
+          $ref: '#/components/schemas/TipoEnum'
+        criado_em:
+          type: string
+          format: date-time
+          readOnly: true
+        processo:
+          type: integer
+      required:
+      - criado_em
+      - processo
+      - tipo
+    Pagar:
+      type: object
+      properties:
+        valor_pago:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        data_pagamento:
+          type: string
+          format: date
+      required:
+      - data_pagamento
+      - valor_pago
     PaginatedAdvogadoList:
       type: object
       required:
@@ -444,7 +502,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Corretor'
-    PaginatedProcessoReaderList:
+    PaginatedPagamentoReaderList:
       type: object
       required:
       - count
@@ -466,7 +524,7 @@ components:
         results:
           type: array
           items:
-            $ref: '#/components/schemas/ProcessoReader'
+            $ref: '#/components/schemas/PagamentoReader'
     Processo:
       type: object
       properties:
@@ -490,29 +548,16 @@ components:
       required:
       - advogado
       - id
-    ProcessoReader:
-      type: object
-      properties:
-        id_processo:
-          type: integer
-          readOnly: true
-        cliente:
-          type: string
-          nullable: true
-        advogado:
-          type: string
-          readOnly: true
-        corretor:
-          type: string
-          readOnly: true
-        pagamentos:
-          type: string
-          readOnly: true
-      required:
-      - advogado
-      - corretor
-      - id_processo
-      - pagamentos
+    TipoEnum:
+      enum:
+      - IMPLANTACAO
+      - CONTRATO_PARCELA
+      - CONTRATO_ENTRADA
+      type: string
+      description: |-
+        * `IMPLANTACAO` - Implantacao
+        * `CONTRATO_PARCELA` - Parcela
+        * `CONTRATO_ENTRADA` - Entrada
     User:
       type: object
       properties:

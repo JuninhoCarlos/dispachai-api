@@ -11,4 +11,4 @@ class AdvogadoSerializer(serializers.ModelSerializer):
 class CorretorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Corretor
-        fields = ["id", "nome", "email", "advogado", "comissao_padrao"]
+        fields = ["id", "nome", "email", "advogado", "comissao_padrao", "chave_pix"]
