@@ -3,10 +3,36 @@ from rest_framework import serializers
 from ..models import (
     Pagamento,
     PagamentoImplantacao,
+    Processo,
     StatusPagamento,
     TipoPagamento,
     PagamentoParcela,
 )
+
+
+class ProcessoDetailSerializer(serializers.ModelSerializer):
+    pagamentos = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Processo
+        fields = ["id", "cliente", "criado_em", "pagamentos"]
+
+    def get_pagamentos(self, obj):
+        implantacoes = obj.get_pagamentos_implantacoes()
+        parcelas = obj.get_pagamentos_parcelas()
+
+        serialized_implantacoes = PagamentoImplantacaoReaderSerializer(
+            [pagamento.implantacao for pagamento in implantacoes], many=True
+        ).data
+
+        serialized_parcelas = PagamentoParcelaReaderSerializer(
+            [pagamento.parcela for pagamento in parcelas], many=True
+        ).data
+
+        return {
+            "implantacoes": serialized_implantacoes,
+            "parcelas": serialized_parcelas,
+        }
 
 
 class PagamentoImplantacaoReaderSerializer(serializers.ModelSerializer):

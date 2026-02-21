@@ -1,4 +1,9 @@
-from rest_framework.generics import CreateAPIView, ListAPIView, GenericAPIView
+from rest_framework.generics import (
+    CreateAPIView,
+    ListAPIView,
+    GenericAPIView,
+    ListCreateAPIView,
+)
 from identity.permissions import IsSuperUser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -14,8 +19,8 @@ from .models import (
     Processo,
     PagamentoImplantacao,
     PagamentoContrato,
-    TipoPagamento,
 )
+
 from .serializers import (
     ProcessoSerializer,
     PagamentoImplantacaoSerializer,
@@ -23,13 +28,32 @@ from .serializers import (
     PagarSerializer,
 )
 
-from .read.serializers import PagamentoReaderSerializer
+from .read.serializers import PagamentoReaderSerializer, ProcessoDetailSerializer
 
 
-class ProcessoListCreateAPIView(CreateAPIView):
+class ProcessoListCreateAPIView(ListCreateAPIView):
     queryset = Processo.objects.all()
-    serializer_class = ProcessoSerializer
+    serializer_class = ProcessoDetailSerializer
     permission_classes = [IsSuperUser]
+
+
+class ProcessoDetailAPIView(GenericAPIView):
+    queryset = Processo.objects.prefetch_related(
+        Prefetch(
+            "pagamentos",
+            queryset=Pagamento.objects.select_related(
+                "implantacao", "parcela"
+            ).order_by("criado_em"),
+        )
+    )
+
+    serializer_class = ProcessoDetailSerializer
+    permission_classes = [IsSuperUser]
+
+    def get(self, request, processo_id):
+        processo = get_object_or_404(self.get_queryset(), id=processo_id)
+        serializer = self.get_serializer(processo)
+        return Response(serializer.data)
 
 
 class ImplantacaoCreateAPIView(CreateAPIView):

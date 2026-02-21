@@ -6,6 +6,7 @@ from .views import (
     ImplantacaoCreateAPIView,
     PagarPagamentosGenericView,
     ContratoCreateAPIView,
+    ProcessoDetailAPIView,
 )
 
 urlpatterns = [
@@ -13,6 +14,11 @@ urlpatterns = [
         "pagamento/processo",
         ProcessoListCreateAPIView.as_view(),
         name="processo_list_create",
+    ),
+    path(
+        "pagamento/processo/<int:processo_id>",
+        ProcessoDetailAPIView.as_view(),
+        name="processo_detail",
     ),
     path(
         "pagamento/implantacao",

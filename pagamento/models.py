@@ -165,6 +165,19 @@ class Processo(models.Model):
 
     criado_em = models.DateTimeField(default=timezone.now)
 
+    def get_pagamentos_by_type(self, tipo):
+        return self.pagamentos.filter(tipo=tipo)
+
+    def get_pagamentos_implantacoes(self):
+        return self.pagamentos.filter(tipo=TipoPagamento.IMPLANTACAO).select_related(
+            "implantacao"
+        )
+
+    def get_pagamentos_parcelas(self):
+        return self.pagamentos.filter(
+            tipo__in=[TipoPagamento.ENTRADA, TipoPagamento.PARCELA]
+        ).select_related("parcela")
+
 
 class PagamentoEvento(models.Model):
     # id do pagamento especifico que ta sendo registrado o evento
