@@ -87,7 +87,7 @@ class PagamentoParcelaReaderSerializer(StatusMixin, serializers.ModelSerializer)
 
 
 class PagamentoReaderSerializer(serializers.ModelSerializer):
-    # processo = serializers.SerializerMethodField()
+    processo = serializers.SerializerMethodField()
 
     class Meta:
         model = Pagamento
