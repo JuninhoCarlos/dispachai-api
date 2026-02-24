@@ -14,17 +14,6 @@ from .models import (
 )
 
 
-class ProcessoSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Processo
-        fields = [
-            "id",
-            "cliente",
-            "advogado",
-            "corretor",
-        ]
-
-
 class PagamentoBaseSerializer(serializers.ModelSerializer):
     processo = serializers.PrimaryKeyRelatedField(
         queryset=Processo.objects.all(), write_only=True

@@ -33,8 +33,15 @@ from .read.serializers import PagamentoReaderSerializer, ProcessoDetailSerialize
 
 class ProcessoListCreateAPIView(ListCreateAPIView):
     queryset = Processo.objects.all()
-    serializer_class = ProcessoDetailSerializer
     permission_classes = [IsSuperUser]
+
+    def get_serializer_class(self):
+        if self.request.method == "GET":
+            return ProcessoDetailSerializer
+        elif self.request.method == "POST":
+            return ProcessoSerializer
+
+        return super().get_serializer_class()
 
 
 class ProcessoDetailAPIView(GenericAPIView):
