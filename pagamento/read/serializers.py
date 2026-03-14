@@ -35,17 +35,6 @@ class ProcessoDetailSerializer(serializers.ModelSerializer):
         }
 
 
-class PagamentoImplantacaoReaderSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = PagamentoImplantacao
-        fields = [
-            "pagamento",
-            "valor_total",
-            "data_vencimento",
-            "status",
-        ]
-
-
 class StatusMixin:
     def get_status(self, obj):
         if obj.data_vencimento < date.today() and (
@@ -55,6 +44,20 @@ class StatusMixin:
             return StatusPagamento.ATRASADO
 
         return obj.status
+
+
+class PagamentoImplantacaoReaderSerializer(StatusMixin, serializers.ModelSerializer):
+    status = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PagamentoImplantacao
+        fields = [
+            "pagamento",
+            "valor_total",
+            "data_vencimento",
+            "status",
+            "local_pagamento",
+        ]
 
 
 class ParcelasSerializer(StatusMixin, serializers.ModelSerializer):

@@ -135,6 +135,7 @@ class PagamentoImplantacaoSerializer(PagamentoBaseSerializer):
     tipo = TipoPagamento.IMPLANTACAO
     porcentagem_escritorio = serializers.DecimalField(max_digits=5, decimal_places=2)
     data_vencimento = serializers.DateField()
+    local_pagamento = serializers.CharField(max_length=255, required=False)
 
     class Meta:
         model = PagamentoImplantacao
@@ -143,6 +144,7 @@ class PagamentoImplantacaoSerializer(PagamentoBaseSerializer):
             "valor_total",
             "porcentagem_escritorio",
             "data_vencimento",
+            "local_pagamento",
         ]
 
     def validate(self, data):
@@ -166,7 +168,9 @@ class PagamentoImplantacaoSerializer(PagamentoBaseSerializer):
 
         pagamento = self.create_pagamento(validated_data)
         validated_data["pagamento"] = pagamento
+        import ipdb
 
+        ipdb.set_trace()
         return super().create(validated_data)
 
 

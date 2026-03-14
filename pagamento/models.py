@@ -54,6 +54,7 @@ class PagamentoImplantacao(models.Model):
     valor_total = models.DecimalField(max_digits=10, decimal_places=2, default=None)
     porcentagem_escritorio = models.DecimalField(max_digits=5, decimal_places=2)
     data_vencimento = models.DateField(blank=False, null=False)
+    local_pagamento = models.CharField(max_length=255, blank=True, null=True)
 
     status = models.CharField(
         max_length=20,
