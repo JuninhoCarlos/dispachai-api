@@ -62,13 +62,6 @@ class PagamentoContratoSerializer(PagamentoBaseSerializer):
         Validações de alto nível envolvendo múltiplos campos.
         """
 
-        # 1. Validar data do pagamento: deve ser uma data futura
-        vencimento = data.get("vencimento_entrada")
-        if vencimento and vencimento <= date.today():
-            raise serializers.ValidationError(
-                {"vencimento_entrada": "A data deve ser futura."}
-            )
-
         # 2. Validar: entrada + valor_parcela * numero_parcelas == valor_total
         valor_total = data.get("valor_total")
         entrada = data.get("entrada")
@@ -162,16 +155,9 @@ class PagamentoImplantacaoSerializer(PagamentoBaseSerializer):
 
         # validar porcentagem_escritorio entre 0 e 100
         porcentagem = data.get("porcentagem_escritorio")
-        if porcentagem is not None and not (0 < porcentagem <= 100):
+        if porcentagem is not None and not (0 <= porcentagem <= 100):
             raise serializers.ValidationError(
                 {"porcentagem_escritorio": "A porcentagem deve estar entre 0 e 100."}
-            )
-
-        # validar data_vencimento no futuro
-        vencimento = data.get("data_vencimento")
-        if vencimento is not None and vencimento < date.today():
-            raise serializers.ValidationError(
-                {"data_vencimento": "A data de vencimento deve ser futura."}
             )
 
         return data
