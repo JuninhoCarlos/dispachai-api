@@ -1,9 +1,9 @@
-from rest_framework.generics import ListCreateAPIView
+from rest_framework.generics import ListCreateAPIView, ListAPIView
 from identity.permissions import IsSuperUser
 from rest_framework.permissions import IsAuthenticated
 
-from .models import Advogado, Corretor
-from .serializers import AdvogadoSerializer, CorretorSerializer
+from .models import Advogado, Corretor, Cliente
+from .serializers import AdvogadoSerializer, CorretorSerializer, ClienteSerializer
 
 
 class AdvogadoListCreateAPIView(ListCreateAPIView):
@@ -32,3 +32,12 @@ class CorretorListCreateAPIView(ListCreateAPIView):
             # Permissions for POST requests
             return [IsSuperUser()]
         return super().get_permissions()
+
+
+class ClienteListAPIView(ListAPIView):
+    queryset = Cliente.objects.all()
+    serializer_class = ClienteSerializer
+
+    def get_permissions(self):
+        # Permissions for GET requests
+        return [IsAuthenticated()]

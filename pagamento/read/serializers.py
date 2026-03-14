@@ -103,7 +103,8 @@ class PagamentoReaderSerializer(serializers.ModelSerializer):
     def get_processo(self, obj):
         return {
             "id_processo": obj.processo.id,
-            "cliente": obj.processo.cliente,
+            "id_cliente": obj.processo.cliente.id,
+            "cliente": obj.processo.cliente.nome,
             "advogado": obj.processo.advogado.nome,
             "corretor": obj.processo.corretor.nome if obj.processo.corretor else None,
         }

@@ -1,6 +1,10 @@
 from django.urls import path, include
 
-from .views import AdvogadoListCreateAPIView, CorretorListCreateAPIView
+from .views import (
+    AdvogadoListCreateAPIView,
+    CorretorListCreateAPIView,
+    ClienteListAPIView,
+)
 
 urlpatterns = [
     path(
@@ -13,4 +17,5 @@ urlpatterns = [
         CorretorListCreateAPIView.as_view(),
         name="corretor_list_create",
     ),
+    path("pessoas/cliente", ClienteListAPIView.as_view(), name="cliente_list"),
 ]

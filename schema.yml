@@ -184,6 +184,32 @@ paths:
                 $ref: '#/components/schemas/PagamentoImplantacao'
           description: ''
   /api/pagamento/processo:
+    get:
+      operationId: pagamento_processo_list
+      parameters:
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: The initial index from which to return the results.
+        schema:
+          type: integer
+      tags:
+      - pagamento
+      security:
+      - knoxApiToken: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProcessoDetailList'
+          description: ''
     post:
       operationId: pagamento_processo_create
       tags:
@@ -208,6 +234,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Processo'
+          description: ''
+  /api/pagamento/processo/{processo_id}:
+    get:
+      operationId: pagamento_processo_retrieve
+      parameters:
+      - in: path
+        name: processo_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - pagamento
+      security:
+      - knoxApiToken: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcessoDetail'
           description: ''
   /api/pessoas/advogado:
     get:
@@ -260,6 +306,33 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Advogado'
+          description: ''
+  /api/pessoas/cliente:
+    get:
+      operationId: pessoas_cliente_list
+      parameters:
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: The initial index from which to return the results.
+        schema:
+          type: integer
+      tags:
+      - pessoas
+      security:
+      - knoxApiToken: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedClienteList'
           description: ''
   /api/pessoas/corretor:
     get:
@@ -341,7 +414,32 @@ components:
           type: string
           format: decimal
           pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+        chave_pix:
+          type: string
+          nullable: true
+          maxLength: 255
       required:
+      - id
+      - nome
+    Cliente:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        nome:
+          type: string
+          maxLength: 255
+        cpf:
+          type: string
+          nullable: true
+          maxLength: 14
+        criado_em:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - criado_em
       - id
       - nome
     Corretor:
@@ -363,6 +461,10 @@ components:
           type: string
           format: decimal
           pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+        chave_pix:
+          type: string
+          nullable: true
+          maxLength: 255
       required:
       - advogado
       - email
@@ -424,6 +526,9 @@ components:
         data_vencimento:
           type: string
           format: date
+        local_pagamento:
+          type: string
+          maxLength: 255
       required:
       - data_vencimento
       - porcentagem_escritorio
@@ -438,7 +543,8 @@ components:
           format: date-time
           readOnly: true
         processo:
-          type: integer
+          type: string
+          readOnly: true
       required:
       - criado_em
       - processo
@@ -479,6 +585,29 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Advogado'
+    PaginatedClienteList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Cliente'
     PaginatedCorretorList:
       type: object
       required:
@@ -525,6 +654,29 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PagamentoReader'
+    PaginatedProcessoDetailList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProcessoDetail'
     Processo:
       type: object
       properties:
@@ -533,7 +685,10 @@ components:
           readOnly: true
         cliente:
           type: string
-          nullable: true
+          writeOnly: true
+        cpf:
+          type: string
+          writeOnly: true
         advogado:
           type: integer
         corretor:
@@ -548,6 +703,24 @@ components:
       required:
       - advogado
       - id
+    ProcessoDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        cliente:
+          type: integer
+          nullable: true
+        criado_em:
+          type: string
+          format: date-time
+        pagamentos:
+          type: string
+          readOnly: true
+      required:
+      - id
+      - pagamentos
     TipoEnum:
       enum:
       - IMPLANTACAO

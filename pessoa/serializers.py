@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Advogado, Corretor
+from .models import Advogado, Corretor, Cliente
 
 
 class AdvogadoSerializer(serializers.ModelSerializer):
@@ -20,3 +20,9 @@ class CorretorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Corretor
         fields = ["id", "nome", "email", "advogado", "comissao_padrao", "chave_pix"]
+
+
+class ClienteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Cliente
+        fields = ["id", "nome", "cpf", "criado_em"]

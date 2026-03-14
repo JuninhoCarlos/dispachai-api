@@ -1,6 +1,9 @@
 from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
 
+# Helper function to validate CPF
+import re
+
 from rest_framework import serializers
 from .models import (
     PagamentoImplantacao,
@@ -12,6 +15,22 @@ from .models import (
     StatusPagamento,
     Pagamento,
 )
+
+from pessoa.models import Cliente
+
+from django.core.exceptions import ValidationError
+
+
+def validate_cpf(cpf):
+    cpf = re.sub(r"[^0-9]", "", cpf)
+    if len(cpf) != 11 or cpf == cpf[0] * 11:
+        return False
+
+    def calc_digit(digs):
+        s = sum(int(d) * w for d, w in zip(digs, range(len(digs) + 1, 1, -1)))
+        return str((s * 10 % 11) % 10)
+
+    return calc_digit(cpf[:9]) == cpf[9] and calc_digit(cpf[:10]) == cpf[10]
 
 
 class PagamentoBaseSerializer(serializers.ModelSerializer):
@@ -168,23 +187,46 @@ class PagamentoImplantacaoSerializer(PagamentoBaseSerializer):
 
         pagamento = self.create_pagamento(validated_data)
         validated_data["pagamento"] = pagamento
-        import ipdb
-
-        ipdb.set_trace()
         return super().create(validated_data)
 
 
 class ProcessoSerializer(serializers.ModelSerializer):
+    cliente = serializers.CharField(write_only=True, required=False)
+    cpf = serializers.CharField(write_only=True, required=False)
+
     class Meta:
         model = Processo
         fields = [
             "id",
             "cliente",
+            "cpf",
             "advogado",
             "corretor",
             "criado_em",
             "observacao",
         ]
+
+    def validate(self, data):
+        cpf = data.get("cpf")
+        if cpf and not validate_cpf(cpf):
+            raise ValidationError({"cpf": "CPF inválido."})
+        return data
+
+    def create(self, validated_data):
+        cliente_nome = validated_data.pop("cliente", None)
+        cpf = validated_data.pop("cpf", None)
+
+        if cpf:
+            cliente = Cliente.objects.filter(cpf=cpf).first()
+            if not cliente:
+                cliente = Cliente.objects.create(nome=cliente_nome, cpf=cpf)
+        elif cliente_nome:
+            cliente = Cliente.objects.create(nome=cliente_nome)
+        else:
+            raise ValidationError("É necessário fornecer o nome do cliente ou o CPF.")
+
+        validated_data["cliente"] = cliente
+        return super().create(validated_data)
 
 
 class PagarSerializer(serializers.Serializer):

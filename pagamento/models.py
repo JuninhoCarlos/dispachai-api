@@ -4,7 +4,7 @@ from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
 
-from pessoa.models import Advogado, Corretor
+from pessoa.models import Advogado, Corretor, Cliente
 
 
 class TipoPagamento(models.TextChoices):
@@ -125,7 +125,13 @@ class PagamentoParcela(models.Model):
 
 
 class Processo(models.Model):
-    cliente = models.TextField(blank=True, null=True)
+    cliente = models.ForeignKey(
+        Cliente,
+        on_delete=models.CASCADE,
+        related_name="processos",
+        null=True,
+        blank=True,
+    )
     advogado = models.ForeignKey(
         Advogado,
         on_delete=models.CASCADE,

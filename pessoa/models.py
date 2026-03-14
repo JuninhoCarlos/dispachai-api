@@ -46,3 +46,12 @@ class Corretor(models.Model):
 
     def __str__(self):
         return f"{self.nome} (Advogado: {self.advogado.nome})"
+
+
+class Cliente(models.Model):
+    nome = models.CharField(max_length=255)
+    cpf = models.CharField(max_length=14, blank=True, null=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.nome
