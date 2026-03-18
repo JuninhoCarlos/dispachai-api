@@ -1,0 +1,85 @@
+name: SonarCloud
+
+on:
+  workflow_run:
+    workflows: ["Test"]
+    types: [completed]
+  pull_request:
+  push:
+    branches: ["main"]
+
+jobs:
+  sonar:
+    runs-on: ubuntu-latest
+    # When triggered by workflow_run, only run if tests passed
+    if: >
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success'
+
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: appdb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/appdb
+      SECRET_KEY: ${{ secrets.SECRET_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      # --- Path A: triggered directly (pull_request / push) ---
+      - name: Set up Python
+        if: github.event_name != 'workflow_run'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install uv
+        if: github.event_name != 'workflow_run'
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
+        if: github.event_name != 'workflow_run'
+        run: uv sync --group dev
+
+      - name: Run migrations
+        if: github.event_name != 'workflow_run'
+        run: uv run python manage.py migrate
+
+      - name: Run tests with coverage
+        if: github.event_name != 'workflow_run'
+        run: uv run coverage run manage.py test
+
+      - name: Generate coverage XML
+        if: github.event_name != 'workflow_run'
+        run: uv run coverage xml
+
+      # --- Path B: triggered by workflow_run (downloads pre-built artifact) ---
+      - name: Download coverage report
+        if: github.event_name == 'workflow_run'
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-report
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # --- Always: run the scan ---
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
