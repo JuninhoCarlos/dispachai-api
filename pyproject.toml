@@ -20,6 +20,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "black>=25.11.0",
+    "coverage>=7.0",
     "ipdb>=0.13.13",
     "ruff>=0.9.0",
 ]
@@ -32,3 +33,16 @@ line-length = 88
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]
+
+[tool.coverage.run]
+source = ["."]
+omit = [
+    "*/migrations/*",
+    "manage.py",
+    "api/settings.py",
+    "api/wsgi.py",
+    "api/asgi.py",
+]
+
+[tool.coverage.report]
+show_missing = true
