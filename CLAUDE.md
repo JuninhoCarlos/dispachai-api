@@ -37,6 +37,12 @@ Never write implementation code before the test exists.
 
 ## Architecture
 
+All endpoints follow a strict layered model: **view → serializer → model**.
+A service layer is only permitted for complex business logic that spans multiple models (see `architecture.md`).
+Authentication is required on every write endpoint by default — `AllowAny` requires an inline comment justifying the exception.
+Unit tests are mandatory for every new endpoint.
+
 See `.claude/rules/` for detailed patterns:
+- `architecture.md` — Layer responsibilities, authentication policy, and when a service layer is permitted
 - `payments.md` — How to add a new payment type (discriminated union pattern)
-- `testing.md` — Django test conventions for this project
+- `testing.md` — Django test conventions and the mandatory test checklist

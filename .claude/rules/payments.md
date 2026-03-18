@@ -67,14 +67,21 @@ Write tests verifying:
 - Add a new branch in `PagamentoReaderSerializer.to_representation()` to use the new reader serializer when `tipo == TipoPagamento.XYZ`
 - Add `select_related("xyz")` to the queryset in the list view's filter/prefetch logic
 
-### Step 7 — Tests: Service (only if the payment can be "paid")
+### Step 7 — Tests: Service (ONLY if the payment type supports the "pagar" action)
+
+A service is warranted here because `pagar` reads payment event history, validates overpayment across
+that history, and updates status — a multi-model stateful transition that cannot live cleanly in a
+single serializer `create()`. This is the exception, not the default pattern.
+
+**Skip steps 7 and 8 entirely** if the new payment type is not payable via `/api/pagamento/<id>/pagar`.
+Do not create a service file for types that are write-once or read-only.
 
 Write tests verifying:
 - POST to `/api/pagamento/<id>/pagar` with `valor_pago` and `data_pagamento` returns 200
 - The payment status is updated to `PAGO` or `PARCIALMENTE_PAGO` correctly
 - Invalid or overpayment states return 400
 
-### Step 8 — Service (`pagamento/services/`)
+### Step 8 — Service (`pagamento/services/`) (ONLY if step 7 applies)
 
 - Add `_pagar_xyz(pagamento, valor_pago, data_pagamento)` in `PagamentoService`
 - Wire it into `pagar()` dispatch with a new `elif tipo == TipoPagamento.XYZ:` branch
