@@ -1,9 +1,10 @@
-from django.test import TestCase
-from rest_framework.test import APIClient
-from rest_framework import status
 from django.contrib.auth.models import User
-from pessoa.models import Advogado
+from django.test import TestCase
 from django.urls import reverse
+from rest_framework import status
+from rest_framework.test import APIClient
+
+from pessoa.models import Advogado
 
 
 class AdvogadoListCreateAPIViewTestCase(TestCase):

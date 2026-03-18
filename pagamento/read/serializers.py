@@ -1,12 +1,14 @@
 from datetime import date
+
 from rest_framework import serializers
+
 from ..models import (
     Pagamento,
     PagamentoImplantacao,
+    PagamentoParcela,
     Processo,
     StatusPagamento,
     TipoPagamento,
-    PagamentoParcela,
 )
 
 

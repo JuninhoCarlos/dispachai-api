@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import Advogado, Corretor, Cliente
+
+from .models import Advogado, Cliente, Corretor
 
 
 class AdvogadoSerializer(serializers.ModelSerializer):
