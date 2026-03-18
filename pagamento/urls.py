@@ -1,12 +1,12 @@
-from django.urls import path, include
+from django.urls import path
 
 from .views import (
-    PagamentoListAPIView,
-    ProcessoListCreateAPIView,
-    ImplantacaoCreateAPIView,
-    PagarPagamentosGenericView,
     ContratoCreateAPIView,
+    ImplantacaoCreateAPIView,
+    PagamentoListAPIView,
+    PagarPagamentosGenericView,
     ProcessoDetailAPIView,
+    ProcessoListCreateAPIView,
 )
 
 urlpatterns = [

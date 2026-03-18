@@ -1,9 +1,10 @@
-from rest_framework.generics import ListCreateAPIView, ListAPIView
-from identity.permissions import IsSuperUser
+from rest_framework.generics import ListAPIView, ListCreateAPIView
 from rest_framework.permissions import IsAuthenticated
 
-from .models import Advogado, Corretor, Cliente
-from .serializers import AdvogadoSerializer, CorretorSerializer, ClienteSerializer
+from identity.permissions import IsSuperUser
+
+from .models import Advogado, Cliente, Corretor
+from .serializers import AdvogadoSerializer, ClienteSerializer, CorretorSerializer
 
 
 class AdvogadoListCreateAPIView(ListCreateAPIView):

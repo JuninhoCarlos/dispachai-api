@@ -1,13 +1,13 @@
-from rest_framework.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Sum
+from rest_framework.exceptions import ValidationError
 
 from pagamento.models import (
+    Pagamento,
+    PagamentoEvento,
     PagamentoImplantacao,
     PagamentoParcela,
-    Pagamento,
     StatusPagamento,
-    PagamentoEvento,
     TipoPagamento,
 )
 
