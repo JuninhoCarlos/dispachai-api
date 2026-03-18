@@ -48,4 +48,4 @@ omit = [
 show_missing = true
 
 [tool.coverage.xml]
-output = coverage.xml
+output = "coverage.xml"
