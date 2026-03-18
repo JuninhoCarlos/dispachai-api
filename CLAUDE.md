@@ -25,6 +25,7 @@ Follow PEP-8. Use `black` for formatting — always run it before finishing any 
 
 For every new feature or bug fix, follow this cycle strictly:
 
+0. **Plan** — before writing any test, invoke the planning step (see `.claude/rules/planning.md`). Clarify requirements, resolve architectural decisions, and produce a design artifact in a Claude plan file. Only proceed to step 1 after the user has approved the design.
 1. **Write failing tests first** — define the expected behavior in tests before writing any implementation code. Run tests and confirm they fail.
 2. **Implement minimum code** — write just enough to make the failing tests pass. No extra logic.
 3. **Run the full test suite** — `uv run python manage.py test`. All tests must pass.
@@ -43,6 +44,7 @@ Authentication is required on every write endpoint by default — `AllowAny` req
 Unit tests are mandatory for every new endpoint.
 
 See `.claude/rules/` for detailed patterns:
+- `planning.md` — Mandatory planning step before any TDD cycle (requirements, architecture decisions, design output)
 - `architecture.md` — Layer responsibilities, authentication policy, and when a service layer is permitted
 - `payments.md` — How to add a new payment type (discriminated union pattern)
 - `testing.md` — Django test conventions and the mandatory test checklist
