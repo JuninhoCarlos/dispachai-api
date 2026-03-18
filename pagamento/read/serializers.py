@@ -41,7 +41,7 @@ class StatusMixin:
     def get_status(self, obj):
         if obj.data_vencimento < date.today() and (
             obj.status != StatusPagamento.PAGO
-            or obj.status != StatusPagamento.PARCIALMENTE_PAGO
+            and obj.status != StatusPagamento.PARCIALMENTE_PAGO
         ):
             return StatusPagamento.ATRASADO
 
