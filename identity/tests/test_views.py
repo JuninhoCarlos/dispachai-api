@@ -1,7 +1,7 @@
-from rest_framework.test import APITestCase
-from rest_framework import status
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+from rest_framework.test import APITestCase
+
 
 class UserAPIViewTestCase(APITestCase):
     def setUp(self):
@@ -9,7 +9,7 @@ class UserAPIViewTestCase(APITestCase):
         self.superuser = get_user_model().objects.create_superuser(
             username="superuser",
             email="superuser@example.com",
-            password="superpassword"
+            password="superpassword",
         )
 
         # Create a regular staff user for testing
@@ -17,17 +17,17 @@ class UserAPIViewTestCase(APITestCase):
             username="staffuser",
             email="staffuser@example.com",
             password="staffpassword",
-            is_staff=True
+            is_staff=True,
         )
 
         # Create a regular user for testing
         self.regular_user = get_user_model().objects.create_user(
             username="regularuser",
             email="regularuser@example.com",
-            password="regularpassword"
+            password="regularpassword",
         )
 
-        self.url = reverse("user_register")  # Assuming the view is registered with the name 'user-list'
+        self.url = reverse("user_register")
 
     def test_superuser_can_create_user(self):
         pass

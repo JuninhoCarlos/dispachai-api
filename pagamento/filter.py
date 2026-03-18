@@ -1,6 +1,6 @@
 import django_filters
-from django.utils import timezone
 from django.db.models import Q
+from django.utils import timezone
 
 from .models import (
     Pagamento,
@@ -24,7 +24,7 @@ class PagamentoMonthYearFilter(django_filters.FilterSet):
         qs = super().qs
         now = timezone.now()
 
-        # Get the year and month from the filter data or default to the current year/month
+        # Get year and month from filter data, defaulting to current
         year = int(self.data.get("year", now.year))
         month = int(self.data.get("month", now.month))
 

@@ -1,24 +1,22 @@
-from datetime import date, timedelta
-from dateutil.relativedelta import relativedelta
-
 # Helper function to validate CPF
 import re
 
+from dateutil.relativedelta import relativedelta
+from django.core.exceptions import ValidationError
 from rest_framework import serializers
-from .models import (
-    PagamentoImplantacao,
-    PagamentoContrato,
-    Processo,
-    TipoPagamento,
-    TipoParcela,
-    PagamentoParcela,
-    StatusPagamento,
-    Pagamento,
-)
 
 from pessoa.models import Cliente
 
-from django.core.exceptions import ValidationError
+from .models import (
+    Pagamento,
+    PagamentoContrato,
+    PagamentoImplantacao,
+    PagamentoParcela,
+    Processo,
+    StatusPagamento,
+    TipoPagamento,
+    TipoParcela,
+)
 
 
 def validate_cpf(cpf):
@@ -104,7 +102,7 @@ class PagamentoContratoSerializer(PagamentoBaseSerializer):
     def create(self, validated_data):
         vencimento_parcela = validated_data.get("vencimento_parcela")
         processo = validated_data.pop("processo")
-        valor_total = validated_data.pop("valor_total")
+        validated_data.pop("valor_total")
 
         contrato = super().create(validated_data)
 
