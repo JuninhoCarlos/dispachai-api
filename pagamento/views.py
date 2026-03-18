@@ -19,8 +19,8 @@ from .models import (
     PagamentoImplantacao,
     Processo,
 )
-from .read.serializers import PagamentoReaderSerializer, ProcessoDetailSerializer
-from .serializers import (
+from .serializers.read import PagamentoReaderSerializer, ProcessoDetailSerializer
+from .serializers.write import (
     PagamentoContratoSerializer,
     PagamentoImplantacaoSerializer,
     PagarSerializer,

@@ -47,7 +47,7 @@ Write tests verifying:
 - The `Pagamento` and subtype records are both created in the database
 - Required fields return 400 with the correct field name when missing
 
-### Step 4 — Write Serializer (`pagamento/serializers.py`)
+### Step 4 — Write Serializer (`pagamento/serializers/write.py`)
 
 - Create `PagamentoXyzSerializer(serializers.Serializer)` with all required fields
 - Override `create()` with `@transaction.atomic`: first create `Pagamento(tipo=TipoPagamento.XYZ, processo=...)`, then `PagamentoXyz(pagamento=pagamento, ...)`
@@ -60,7 +60,7 @@ Write tests verifying:
 - The response includes a `detalhe` field with the subtype's data
 - If the subtype has a `data_vencimento`, overdue status (`ATRASADO`) is computed correctly when the date is in the past and status is not `PAGO`
 
-### Step 6 — Read Serializer (`pagamento/read/serializers.py`)
+### Step 6 — Read Serializer (`pagamento/serializers/read.py`)
 
 - Create `PagamentoXyzReaderSerializer(serializers.ModelSerializer)` with a `Meta` pointing to the new model
 - If the type can be overdue, override `to_representation()` to set `status` to `ATRASADO` when appropriate

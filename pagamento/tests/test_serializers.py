@@ -10,7 +10,7 @@ from pagamento.models import (
     TipoPagamento,
     TipoParcela,
 )
-from pagamento.serializers import (
+from pagamento.serializers.write import (
     PagamentoContratoSerializer,
     PagamentoImplantacaoSerializer,
     PagarSerializer,

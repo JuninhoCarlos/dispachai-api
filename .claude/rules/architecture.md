@@ -20,7 +20,7 @@ Views must not contain business logic, DB queries outside of `get_queryset()`, o
 Use DRF generic views (`CreateAPIView`, `ListAPIView`, `GenericAPIView`) whenever they fit.
 Keep views under ~40 lines. If a view is growing, it is absorbing logic that belongs in a serializer.
 
-### Serializer (`serializers.py`, `read/serializers.py`)
+### Serializer (`serializers/write.py`, `serializers/read.py`)
 
 Handles validation and data transformation only:
 - Declare fields with appropriate validators
@@ -28,7 +28,7 @@ Handles validation and data transformation only:
 - Override `validate()` for cross-field rules
 - Override `create()` or `update()` for DB writes; wrap multi-model writes in `@transaction.atomic`
 
-Write serializers (`serializers.py`) and read serializers (`read/serializers.py`) are kept separate.
+Write (mutation) serializers and read (query) serializers are kept separate. See **Serializer File Layout** below.
 Serializers must not access `request` or contain presentation logic unrelated to the model.
 Keep serializer `create()` methods under ~30 lines. Extract a private method within the same class if longer.
 
@@ -79,3 +79,41 @@ that is also called from multiple entry points.
 
 If your feature does not meet all three criteria, put the logic in the serializer's `create()` or
 `validate()`. Do not create a service file speculatively.
+
+---
+
+## Serializer File Layout
+
+Every app uses a `serializers/` package — never a flat `serializers.py` module.
+
+```
+app/
+├── serializers/
+│   ├── __init__.py   # re-exports public symbols when no read layer exists yet
+│   ├── write.py      # mutation (POST/PUT) serializers
+│   └── read.py       # query (GET) serializers — only add when the app has read-specific logic
+```
+
+**Rules:**
+
+- `write.py` — all serializers used by write endpoints (creation, updates, input validation).
+- `read.py` — all serializers used by read endpoints (response shaping, computed fields, polymorphic output). Create this file only when the app genuinely needs read-specific serializers.
+- `__init__.py` — re-exports from `write.py` only, so callers that haven't adopted the explicit import path yet continue to work:
+  ```python
+  from .write import FooSerializer  # noqa: F401
+  ```
+  Once a `read.py` exists, callers **must** import from `serializers.read` or `serializers.write` explicitly. Remove the `__init__.py` re-export at that point to prevent ambiguity.
+
+**Import style in views and tests:**
+
+```python
+# views.py
+from .serializers.read import FooReaderSerializer
+from .serializers.write import FooSerializer
+
+# tests/
+from myapp.serializers.write import FooSerializer
+from myapp.serializers.read import FooReaderSerializer
+```
+
+Never import from `app.serializers` directly once a `read.py` exists in that app.

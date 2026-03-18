@@ -7,7 +7,7 @@ from rest_framework import serializers
 
 from pessoa.models import Cliente
 
-from .models import (
+from ..models import (
     Pagamento,
     PagamentoContrato,
     PagamentoImplantacao,

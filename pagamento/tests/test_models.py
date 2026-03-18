@@ -8,7 +8,7 @@ from pagamento.models import (
     StatusPagamento,
     TipoPagamento,
 )
-from pagamento.read.serializers import StatusMixin
+from pagamento.serializers.read import StatusMixin
 from pagamento.tests import (
     create_advogado,
     create_cliente,
