@@ -1,1 +1,1 @@
-from .write import UserSerializer  # noqa: F401
+from .write import UserSerializer as UserSerializer
