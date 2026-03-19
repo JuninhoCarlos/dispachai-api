@@ -1,5 +1,6 @@
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Q
 from django.shortcuts import get_object_or_404
+from django.utils.timezone import now
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.generics import (
     CreateAPIView,
@@ -17,9 +18,16 @@ from .models import (
     Pagamento,
     PagamentoContrato,
     PagamentoImplantacao,
+    PagamentoParcela,
     Processo,
+    StatusPagamento,
 )
-from .serializers.read import PagamentoReaderSerializer, ProcessoDetailSerializer
+from .serializers.read import (
+    PagamentoReaderSerializer,
+    PendentesImplantacaoSerializer,
+    PendentesParcelaSerializer,
+    ProcessoDetailSerializer,
+)
 from .serializers.write import (
     PagamentoContratoSerializer,
     PagamentoImplantacaoSerializer,
@@ -114,3 +122,27 @@ class PagamentoListAPIView(ListAPIView):
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
     filterset_class = PagamentoMonthYearFilter
+
+
+class ProcessoPendentesAPIView(GenericAPIView):
+    permission_classes = [IsSuperUser]
+
+    def get(self, request, processo_id):
+        get_object_or_404(Processo, pk=processo_id)
+        today = now().date()
+        pending_filter = Q(status=StatusPagamento.PARCIALMENTE_PAGO) | Q(
+            status=StatusPagamento.PLANEJADO, data_vencimento__lt=today
+        )
+        implantacoes = (
+            PagamentoImplantacao.objects.filter(pagamento__processo_id=processo_id)
+            .filter(pending_filter)
+            .select_related("pagamento")
+        )
+        parcelas = (
+            PagamentoParcela.objects.filter(pagamento__processo_id=processo_id)
+            .filter(pending_filter)
+            .select_related("pagamento")
+        )
+        data = PendentesImplantacaoSerializer(implantacoes, many=True).data
+        data += PendentesParcelaSerializer(parcelas, many=True).data
+        return Response(data)
