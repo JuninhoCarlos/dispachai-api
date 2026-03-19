@@ -33,6 +33,7 @@ For every new feature or bug fix, follow this cycle strictly:
 4. **Run the full test suite** — `uv run python manage.py test`. All tests must pass.
 5. **Refactor** — clean up duplication or clarity issues. Re-run tests to confirm.
 6. **Format and lint** — run `uv run black .` then `uv run ruff check .` before finishing. Fix any ruff errors before marking the task done. See `linting.md`.
+7. **Regenerate schema (if API changed)** — if the change adds, removes, or modifies any endpoint, serializer field, or URL, run `uv run python manage.py spectacular --color --file schema.yml` to keep `schema.yml` in sync. Skip for test-only changes or internal refactors with no public interface change. See `schema.md`.
 
 Never write implementation code before the test exists and the user has approved the tests.
 
@@ -51,3 +52,4 @@ See `.claude/rules/` for detailed patterns:
 - `payments.md` — How to add a new payment type (discriminated union pattern)
 - `testing.md` — Django test conventions and the mandatory test checklist (includes approval gate)
 - `linting.md` — Required format and lint steps before finishing any task
+- `schema.md` — When and how to regenerate the OpenAPI schema file
