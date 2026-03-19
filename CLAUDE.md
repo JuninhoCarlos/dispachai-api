@@ -31,6 +31,7 @@ For every new feature or bug fix, follow this cycle strictly:
 3. **Run the full test suite** — `uv run python manage.py test`. All tests must pass.
 4. **Refactor** — clean up duplication or clarity issues. Re-run tests to confirm.
 5. **Format** — run `uv run black .` before finishing.
+6. **Schema** — if the change adds or modifies an endpoint, serializer field, or URL, regenerate the OpenAPI schema: `uv run python manage.py spectacular --color --file schema.yml`
 
 Never write implementation code before the test exists.
 
