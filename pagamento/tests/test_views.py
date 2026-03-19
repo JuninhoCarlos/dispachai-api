@@ -272,6 +272,26 @@ class PagarPagamentosGenericViewTestCase(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_pagar_with_quitar_true_partial_payment_returns_200_and_pago(self):
+        self.client.force_authenticate(user=self.superuser)
+        response = self.client.post(
+            self.url,
+            {"valor_pago": "400.00", "data_pagamento": "2025-01-01", "quitar": True},
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["status"], "OK")
+        self.implantacao.refresh_from_db()
+        self.assertEqual(self.implantacao.status, StatusPagamento.PAGO)
+
+    def test_pagar_without_quitar_partial_stays_parcialmente_pago(self):
+        self.client.force_authenticate(user=self.superuser)
+        response = self.client.post(
+            self.url, {"valor_pago": "400.00", "data_pagamento": "2025-01-01"}
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.implantacao.refresh_from_db()
+        self.assertEqual(self.implantacao.status, StatusPagamento.PARCIALMENTE_PAGO)
+
 
 class PagamentoListAPIViewTestCase(TestCase):
     def setUp(self):

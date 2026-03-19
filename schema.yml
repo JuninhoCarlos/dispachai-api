@@ -255,6 +255,22 @@ paths:
               schema:
                 $ref: '#/components/schemas/ProcessoDetail'
           description: ''
+  /api/pagamento/processo/{processo_id}/pendentes:
+    get:
+      operationId: pagamento_processo_pendentes_retrieve
+      parameters:
+      - in: path
+        name: processo_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - pagamento
+      security:
+      - knoxApiToken: []
+      responses:
+        '200':
+          description: No response body
   /api/pessoas/advogado:
     get:
       operationId: pessoas_advogado_list
@@ -559,6 +575,9 @@ components:
         data_pagamento:
           type: string
           format: date
+        quitar:
+          type: boolean
+          default: false
       required:
       - data_pagamento
       - valor_pago

@@ -125,6 +125,17 @@ class PagamentoServiceValidacaoTestCase(TestCase):
             self.implantacao, Decimal("500.00"), Decimal("0.00")
         )
 
+    def test_pagar_implantacao_with_quitar_true_still_rejects_overpayment(self):
+        # quitar=True does NOT bypass the overpayment check
+        with self.assertRaises(ValidationError) as ctx:
+            PagamentoService._validar_pagamento(
+                self.implantacao,
+                Decimal("1100.00"),
+                Decimal("0.00"),
+                quitar=True,
+            )
+        self.assertIn("erro", ctx.exception.detail)
+
 
 class PagamentoServicePagarImplantacaoTestCase(TestCase):
     def setUp(self):
@@ -173,6 +184,22 @@ class PagamentoServicePagarImplantacaoTestCase(TestCase):
                 )
         self.assertEqual(PagamentoEvento.objects.count(), 0)
 
+    def test_pagar_implantacao_with_quitar_partial_sets_pago(self):
+        PagamentoService.pagar(
+            self.pagamento, Decimal("400.00"), date(2025, 1, 1), quitar=True
+        )
+        self.implantacao.refresh_from_db()
+        self.assertEqual(self.implantacao.status, StatusPagamento.PAGO)
+
+    def test_pagar_implantacao_with_quitar_true_still_rejects_already_pago(self):
+        self.implantacao.status = StatusPagamento.PAGO
+        self.implantacao.save()
+        with self.assertRaises(ValidationError) as ctx:
+            PagamentoService.pagar(
+                self.pagamento, Decimal("100.00"), date(2025, 1, 2), quitar=True
+            )
+        self.assertIn("status", ctx.exception.detail)
+
 
 class PagamentoServicePagarParcelaTestCase(TestCase):
     def setUp(self):
@@ -212,6 +239,30 @@ class PagamentoServicePagarParcelaTestCase(TestCase):
         pagamento_entrada.save()
 
         PagamentoService.pagar(pagamento_entrada, Decimal("200.00"), date(2025, 1, 1))
+        parcela_entrada.refresh_from_db()
+        self.assertEqual(parcela_entrada.status, StatusPagamento.PAGO)
+
+    def test_pagar_parcela_with_quitar_partial_sets_pago(self):
+        PagamentoService.pagar(
+            self.pagamento, Decimal("200.00"), date(2025, 1, 1), quitar=True
+        )
+        self.parcela.refresh_from_db()
+        self.assertEqual(self.parcela.status, StatusPagamento.PAGO)
+
+    def test_pagar_entrada_with_quitar_partial_sets_pago(self):
+        from pagamento.models import TipoParcela
+
+        pagamento_entrada, parcela_entrada = create_parcela(
+            self.processo,
+            valor_parcela=Decimal("200.00"),
+            tipo=TipoParcela.ENTRADA,
+        )
+        pagamento_entrada.tipo = TipoPagamento.ENTRADA
+        pagamento_entrada.save()
+
+        PagamentoService.pagar(
+            pagamento_entrada, Decimal("80.00"), date(2025, 1, 1), quitar=True
+        )
         parcela_entrada.refresh_from_db()
         self.assertEqual(parcela_entrada.status, StatusPagamento.PAGO)
 
