@@ -46,10 +46,28 @@ jobs:
         run: uv run python manage.py migrate
 
       - name: Run tests with coverage
-        run: uv run coverage run manage.py test
+        run: |
+          set -o pipefail
+          uv run coverage run manage.py test 2>&1 | tee /tmp/test_output.txt
+          TEST_COUNT=$(grep -o 'Ran [0-9]* test' /tmp/test_output.txt | awk '{print $2}' || echo "unknown")
+          echo "TEST_COUNT=${TEST_COUNT}" >> $GITHUB_ENV
 
       - name: Coverage report
         run: uv run coverage report
+
+      - name: Capture coverage percentage
+        run: |
+          COVERAGE_PCT=$(uv run coverage report | grep TOTAL | awk '{print $NF}')
+          echo "COVERAGE_PCT=${COVERAGE_PCT:-unknown}" >> $GITHUB_ENV
+
+      - name: Write job summary
+        run: |
+          echo "## Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| Tests run | ${{ env.TEST_COUNT }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Coverage | ${{ env.COVERAGE_PCT }} |" >> $GITHUB_STEP_SUMMARY
 
       - name: Generate coverage XML
         run: uv run coverage xml

@@ -1,5 +1,10 @@
 # DespachAI API
 
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=JuninhoCarlos_dispachai-api&metric=alert_status)](https://sonarcloud.io/project/overview?id=JuninhoCarlos_dispachai-api)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=JuninhoCarlos_dispachai-api&metric=coverage)](https://sonarcloud.io/project/overview?id=JuninhoCarlos_dispachai-api)
+[![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=JuninhoCarlos_dispachai-api&metric=ncloc)](https://sonarcloud.io/project/overview?id=JuninhoCarlos_dispachai-api)
+[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=JuninhoCarlos_dispachai-api&metric=code_smells)](https://sonarcloud.io/project/overview?id=JuninhoCarlos_dispachai-api)
+
 Django REST Framework API for legal services payment management. Handles lawyers, brokers, clients, legal processes, and polymorphic payment types with full transaction history.
 
 ---
