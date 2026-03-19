@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 
 from rest_framework import serializers
 
@@ -10,6 +11,7 @@ from ..models import (
     StatusPagamento,
     TipoPagamento,
 )
+from ..services.pagamento_service import PagamentoEventoService
 
 
 class ProcessoDetailSerializer(serializers.ModelSerializer):
@@ -126,3 +128,56 @@ class PagamentoReaderSerializer(serializers.ModelSerializer):
             data["detalhe"] = None  # Default to None if no matching type
 
         return data
+
+
+class PendentesImplantacaoSerializer(StatusMixin, serializers.ModelSerializer):
+    pagamento_id = serializers.IntegerField(source="pagamento.id")
+    tipo = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
+    valor_pendente = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PagamentoImplantacao
+        fields = ["pagamento_id", "tipo", "status", "data_vencimento", "valor_pendente"]
+
+    def get_tipo(self, obj):
+        return TipoPagamento.IMPLANTACAO
+
+    def get_valor_pendente(self, obj):
+        if obj.status == StatusPagamento.PARCIALMENTE_PAGO:
+            total_pago = PagamentoEventoService.calcular_total_pago(obj.pagamento)
+            return obj.valor_total - Decimal(str(total_pago))
+        return obj.valor_total
+
+
+class PendentesParcelaSerializer(StatusMixin, serializers.ModelSerializer):
+    pagamento_id = serializers.IntegerField(source="pagamento.id")
+    tipo = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
+    valor_pendente = serializers.SerializerMethodField()
+    valor_pago = serializers.SerializerMethodField()
+    parcela = serializers.IntegerField(source="numero_parcela", allow_null=True)
+
+    class Meta:
+        model = PagamentoParcela
+        fields = [
+            "pagamento_id",
+            "tipo",
+            "status",
+            "data_vencimento",
+            "valor_pendente",
+            "valor_pago",
+            "parcela",
+        ]
+
+    def get_tipo(self, obj):
+        return obj.pagamento.tipo
+
+    def get_valor_pendente(self, obj):
+        if obj.status == StatusPagamento.PARCIALMENTE_PAGO:
+            total_pago = PagamentoEventoService.calcular_total_pago(obj.pagamento)
+            return obj.valor_parcela - Decimal(str(total_pago))
+        return obj.valor_parcela
+
+    def get_valor_pago(self, obj):
+        return PagamentoEventoService.calcular_total_pago(obj.pagamento)

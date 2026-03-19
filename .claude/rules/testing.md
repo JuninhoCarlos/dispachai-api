@@ -34,6 +34,10 @@ class FeatureTestCase(TestCase):
 Every new endpoint requires tests before the implementation exists (TDD). No endpoint may be merged
 without covering the four cases below. This is not optional.
 
+After writing the tests and confirming they fail, **stop and present the tests to the user for explicit
+approval** before writing any implementation code. Only proceed once the user confirms the test cases
+are correct.
+
 ## What to Test for Every Endpoint
 
 For every endpoint, cover these four cases:
