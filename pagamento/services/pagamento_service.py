@@ -44,10 +44,11 @@ class PagamentoService:
         valor_pago: float,
         data_pagamento: str,
         historico_pagamento: float,
+        quitar: bool = False,
     ):
         status = (
             StatusPagamento.PAGO
-            if valor_pago + historico_pagamento == implantacao.valor_total
+            if quitar or valor_pago + historico_pagamento == implantacao.valor_total
             else StatusPagamento.PARCIALMENTE_PAGO
         )
 
@@ -68,10 +69,11 @@ class PagamentoService:
         valor_pago: float,
         data_pagamento: str,
         historico_pagamento: float,
+        quitar: bool = False,
     ):
         status = (
             StatusPagamento.PAGO
-            if valor_pago + historico_pagamento == parcela.valor_parcela
+            if quitar or valor_pago + historico_pagamento == parcela.valor_parcela
             else StatusPagamento.PARCIALMENTE_PAGO
         )
 
@@ -90,6 +92,7 @@ class PagamentoService:
         pagamento: PagamentoImplantacao | PagamentoParcela,
         valor_pago: float,
         historico_pagamento: float,
+        quitar: bool = False,
     ):
         if pagamento.status == StatusPagamento.PAGO:
             raise ValidationError({"status": "Este pagamento já foi pago."})
@@ -117,22 +120,30 @@ class PagamentoService:
             )
 
     @classmethod
-    def pagar(cls, pagamento: Pagamento, valor_pago: float, data_pagamento: str):
+    def pagar(
+        cls,
+        pagamento: Pagamento,
+        valor_pago: float,
+        data_pagamento: str,
+        quitar: bool = False,
+    ):
         historico_pagamento = PagamentoEventoService.calcular_total_pago(pagamento)
 
         if pagamento.tipo == TipoPagamento.IMPLANTACAO:
             implantacao = pagamento.implantacao
-            cls._validar_pagamento(implantacao, valor_pago, historico_pagamento)
+            cls._validar_pagamento(implantacao, valor_pago, historico_pagamento, quitar)
             cls._pagar_implantacao(
-                implantacao, valor_pago, data_pagamento, historico_pagamento
+                implantacao, valor_pago, data_pagamento, historico_pagamento, quitar
             )
         elif (
             pagamento.tipo == TipoPagamento.ENTRADA
             or pagamento.tipo == TipoPagamento.PARCELA
         ):
             parcela = pagamento.parcela
-            cls._validar_pagamento(parcela, valor_pago, historico_pagamento)
-            cls._pagar_parcela(parcela, valor_pago, data_pagamento, historico_pagamento)
+            cls._validar_pagamento(parcela, valor_pago, historico_pagamento, quitar)
+            cls._pagar_parcela(
+                parcela, valor_pago, data_pagamento, historico_pagamento, quitar
+            )
         else:
             raise ValidationError(
                 {"tipo": "Tipo de pagamento não suportado para pagamento."}

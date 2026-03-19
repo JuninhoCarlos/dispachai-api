@@ -99,9 +99,13 @@ class PagarPagamentosGenericView(GenericAPIView):
 
         valor_pago = serializer.validated_data["valor_pago"]
         data_pagamento = serializer.validated_data["data_pagamento"]
+        quitar = serializer.validated_data.get("quitar", False)
 
         PagamentoService.pagar(
-            pagamento, valor_pago=valor_pago, data_pagamento=data_pagamento
+            pagamento,
+            valor_pago=valor_pago,
+            data_pagamento=data_pagamento,
+            quitar=quitar,
         )
 
         return Response({"status": "OK"})

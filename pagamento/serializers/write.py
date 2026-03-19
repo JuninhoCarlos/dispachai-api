@@ -230,6 +230,7 @@ class ProcessoSerializer(serializers.ModelSerializer):
 class PagarSerializer(serializers.Serializer):
     valor_pago = serializers.DecimalField(max_digits=10, decimal_places=2)
     data_pagamento = serializers.DateField()
+    quitar = serializers.BooleanField(required=False, default=False)
 
     def validate_valor_pago(self, value):
         if value <= 0:
