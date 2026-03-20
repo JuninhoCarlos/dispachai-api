@@ -270,7 +270,11 @@ paths:
       - knoxApiToken: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pendente'
+          description: ''
   /api/pagamento/relatorio/receita:
     get:
       operationId: pagamento_relatorio_receita_retrieve
@@ -710,6 +714,64 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ProcessoDetail'
+    Pendente:
+      oneOf:
+      - $ref: '#/components/schemas/PendentesImplantacao'
+      - $ref: '#/components/schemas/PendentesParcela'
+    PendentesImplantacao:
+      type: object
+      properties:
+        pagamento_id:
+          type: integer
+        tipo:
+          type: string
+          readOnly: true
+        status:
+          type: string
+          readOnly: true
+        data_vencimento:
+          type: string
+          format: date
+        valor_pendente:
+          type: string
+          readOnly: true
+      required:
+      - data_vencimento
+      - pagamento_id
+      - status
+      - tipo
+      - valor_pendente
+    PendentesParcela:
+      type: object
+      properties:
+        pagamento_id:
+          type: integer
+        tipo:
+          type: string
+          readOnly: true
+        status:
+          type: string
+          readOnly: true
+        data_vencimento:
+          type: string
+          format: date
+        valor_pendente:
+          type: string
+          readOnly: true
+        valor_pago:
+          type: string
+          readOnly: true
+        parcela:
+          type: integer
+          nullable: true
+      required:
+      - data_vencimento
+      - pagamento_id
+      - parcela
+      - status
+      - tipo
+      - valor_pago
+      - valor_pendente
     Processo:
       type: object
       properties:
