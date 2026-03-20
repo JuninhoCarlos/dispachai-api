@@ -1,7 +1,11 @@
+import calendar
+from datetime import date
+
 from django.db.models import Prefetch, Q
 from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
 from django_filters.rest_framework import DjangoFilterBackend
+from drf_spectacular.utils import extend_schema
 from rest_framework.generics import (
     CreateAPIView,
     GenericAPIView,
@@ -17,6 +21,7 @@ from pagamento.filter import PagamentoMonthYearFilter
 from .models import (
     Pagamento,
     PagamentoContrato,
+    PagamentoEvento,
     PagamentoImplantacao,
     PagamentoParcela,
     Processo,
@@ -27,6 +32,7 @@ from .serializers.read import (
     PendentesImplantacaoSerializer,
     PendentesParcelaSerializer,
     ProcessoDetailSerializer,
+    RelatorioReceitaSerializer,
 )
 from .serializers.write import (
     PagamentoContratoSerializer,
@@ -35,6 +41,7 @@ from .serializers.write import (
     ProcessoSerializer,
 )
 from .services.pagamento_service import PagamentoService
+from .services.relatorio_service import build_relatorio
 
 
 class ProcessoListCreateAPIView(ListCreateAPIView):
@@ -150,3 +157,42 @@ class ProcessoPendentesAPIView(GenericAPIView):
         data = PendentesImplantacaoSerializer(implantacoes, many=True).data
         data += PendentesParcelaSerializer(parcelas, many=True).data
         return Response(data)
+
+
+class ReceitaRelatorioAPIView(GenericAPIView):
+    permission_classes = [IsSuperUser]
+    serializer_class = RelatorioReceitaSerializer
+
+    @extend_schema(responses=RelatorioReceitaSerializer)
+    def get(self, request):
+        today = now().date()
+        first_of_month = today.replace(day=1)
+        last_of_month = today.replace(
+            day=calendar.monthrange(today.year, today.month)[1]
+        )
+
+        data_inicio_str = request.query_params.get("data_inicio")
+        data_fim_str = request.query_params.get("data_fim")
+        advogado_id = request.query_params.get("advogado_id")
+
+        data_inicio = (
+            date.fromisoformat(data_inicio_str) if data_inicio_str else first_of_month
+        )
+        data_fim = date.fromisoformat(data_fim_str) if data_fim_str else last_of_month
+
+        eventos = PagamentoEvento.objects.filter(
+            data_pagamento__range=(data_inicio, data_fim)
+        ).select_related(
+            "pagamento__processo__advogado",
+            "pagamento__processo__corretor",
+            "pagamento__processo__cliente",
+            "pagamento__implantacao",
+            "pagamento__parcela",
+        )
+
+        if advogado_id:
+            eventos = eventos.filter(pagamento__processo__advogado_id=advogado_id)
+
+        relatorio = build_relatorio(eventos, data_inicio, data_fim)
+        serializer = RelatorioReceitaSerializer(relatorio)
+        return Response(serializer.data)
