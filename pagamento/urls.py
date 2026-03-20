@@ -8,6 +8,7 @@ from .views import (
     ProcessoDetailAPIView,
     ProcessoListCreateAPIView,
     ProcessoPendentesAPIView,
+    ReceitaRelatorioAPIView,
 )
 
 urlpatterns = [
@@ -42,4 +43,9 @@ urlpatterns = [
         name="pagamento_pagar",
     ),
     path("pagamento", PagamentoListAPIView.as_view(), name="pagamento_list"),
+    path(
+        "pagamento/relatorio/receita",
+        ReceitaRelatorioAPIView.as_view(),
+        name="relatorio_receita",
+    ),
 ]

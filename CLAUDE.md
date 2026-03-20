@@ -50,6 +50,7 @@ See `.claude/rules/` for detailed patterns:
 - `planning.md` — Mandatory planning step before any TDD cycle (requirements, architecture decisions, design output)
 - `architecture.md` — Layer responsibilities, authentication policy, and when a service layer is permitted
 - `payments.md` — How to add a new payment type (discriminated union pattern)
+- `commission.md` — **How commissions are calculated for every payment type** (implantação vs contrato rules, audit field semantics, `total_receita` invariant)
 - `testing.md` — Django test conventions and the mandatory test checklist (includes approval gate)
 - `linting.md` — Required format and lint steps before finishing any task
 - `schema.md` — When and how to regenerate the OpenAPI schema file

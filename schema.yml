@@ -271,6 +271,20 @@ paths:
       responses:
         '200':
           description: No response body
+  /api/pagamento/relatorio/receita:
+    get:
+      operationId: pagamento_relatorio_receita_retrieve
+      tags:
+      - pagamento
+      security:
+      - knoxApiToken: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RelatorioReceita'
+          description: ''
   /api/pessoas/advogado:
     get:
       operationId: pessoas_advogado_list
@@ -740,6 +754,154 @@ components:
       required:
       - id
       - pagamentos
+    RelatorioAdvogado:
+      type: object
+      properties:
+        id:
+          type: integer
+        nome:
+          type: string
+        total_comissao:
+          type: number
+          format: double
+          maximum: 10000000000
+          minimum: -10000000000
+          exclusiveMaximum: true
+          exclusiveMinimum: true
+        processos:
+          type: array
+          items:
+            $ref: '#/components/schemas/RelatorioProcessoItem'
+      required:
+      - id
+      - nome
+      - processos
+      - total_comissao
+    RelatorioCorretor:
+      type: object
+      properties:
+        id:
+          type: integer
+        nome:
+          type: string
+        total_comissao:
+          type: number
+          format: double
+          maximum: 10000000000
+          minimum: -10000000000
+          exclusiveMaximum: true
+          exclusiveMinimum: true
+        processos:
+          type: array
+          items:
+            $ref: '#/components/schemas/RelatorioProcessoItem'
+      required:
+      - id
+      - nome
+      - processos
+      - total_comissao
+    RelatorioEscritorio:
+      type: object
+      properties:
+        total_comissao:
+          type: number
+          format: double
+          maximum: 10000000000
+          minimum: -10000000000
+          exclusiveMaximum: true
+          exclusiveMinimum: true
+      required:
+      - total_comissao
+    RelatorioPagamentoItem:
+      type: object
+      properties:
+        pagamento_id:
+          type: integer
+        tipo:
+          type: string
+        receita:
+          type: number
+          format: double
+          maximum: 10000000000
+          minimum: -10000000000
+          exclusiveMaximum: true
+          exclusiveMinimum: true
+        comissao_porcentagem:
+          type: number
+          format: double
+          maximum: 1000
+          minimum: -1000
+          exclusiveMaximum: true
+          exclusiveMinimum: true
+        comissao_valor:
+          type: number
+          format: double
+          maximum: 10000000000
+          minimum: -10000000000
+          exclusiveMaximum: true
+          exclusiveMinimum: true
+      required:
+      - comissao_porcentagem
+      - comissao_valor
+      - pagamento_id
+      - receita
+      - tipo
+    RelatorioPeriodo:
+      type: object
+      properties:
+        inicio:
+          type: string
+          format: date
+        fim:
+          type: string
+          format: date
+      required:
+      - fim
+      - inicio
+    RelatorioProcessoItem:
+      type: object
+      properties:
+        processo_id:
+          type: integer
+        cliente:
+          type: string
+          nullable: true
+        pagamentos:
+          type: array
+          items:
+            $ref: '#/components/schemas/RelatorioPagamentoItem'
+      required:
+      - cliente
+      - pagamentos
+      - processo_id
+    RelatorioReceita:
+      type: object
+      properties:
+        periodo:
+          $ref: '#/components/schemas/RelatorioPeriodo'
+        total_receita:
+          type: number
+          format: double
+          maximum: 10000000000
+          minimum: -10000000000
+          exclusiveMaximum: true
+          exclusiveMinimum: true
+        escritorio:
+          $ref: '#/components/schemas/RelatorioEscritorio'
+        advogados:
+          type: array
+          items:
+            $ref: '#/components/schemas/RelatorioAdvogado'
+        corretores:
+          type: array
+          items:
+            $ref: '#/components/schemas/RelatorioCorretor'
+      required:
+      - advogados
+      - corretores
+      - escritorio
+      - periodo
+      - total_receita
     TipoEnum:
       enum:
       - IMPLANTACAO

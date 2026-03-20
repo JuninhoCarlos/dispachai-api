@@ -3,7 +3,7 @@ from decimal import Decimal
 
 from rest_framework import serializers
 
-from ..models import (
+from ...models import (
     Pagamento,
     PagamentoImplantacao,
     PagamentoParcela,
@@ -11,7 +11,7 @@ from ..models import (
     StatusPagamento,
     TipoPagamento,
 )
-from ..services.pagamento_service import PagamentoEventoService
+from ...services.pagamento_service import PagamentoEventoService
 
 
 class ProcessoDetailSerializer(serializers.ModelSerializer):
