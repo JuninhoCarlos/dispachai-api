@@ -32,6 +32,48 @@ Use DRF generic views (`CreateAPIView`, `ListAPIView`, `GenericAPIView`) wheneve
 Keep views under ~40 lines. If a view is growing, it is absorbing logic that belongs
 in a serializer or a service.
 
+**OpenAPI schema annotation (`@extend_schema`) is mandatory** when drf-spectacular cannot
+infer the serializer from `serializer_class` alone. Two cases trigger this requirement:
+
+1. **`serializer_class` is absent** — the view manually instantiates serializers inside
+   the method body instead of relying on `get_serializer()`.
+2. **Multiple serializers per class** — the view overrides `get_serializer_class()` to
+   return different serializers depending on the HTTP method.
+
+In both cases, annotate each affected method explicitly:
+
+```python
+from drf_spectacular.utils import extend_schema
+
+class MyView(GenericAPIView):
+    # No serializer_class — every method must be annotated
+
+    @extend_schema(responses=MyReaderSerializer)
+    def get(self, request): ...
+
+    @extend_schema(request=MyWriteSerializer, responses=MyReaderSerializer)
+    def post(self, request): ...
+```
+
+When a response merges two polymorphic serializer types into one list, use
+`PolymorphicProxySerializer` with the discriminator field:
+
+```python
+from drf_spectacular.utils import extend_schema, PolymorphicProxySerializer
+
+@extend_schema(
+    responses=PolymorphicProxySerializer(
+        component_name="MyUnion",
+        serializers=[FooSerializer, BarSerializer],
+        resource_type_field_name="tipo",
+    )
+)
+def get(self, request): ...
+```
+
+Never rely on drf-spectacular's fallback inference when `serializer_class` is absent or
+dispatched dynamically — the generated schema will be wrong or empty.
+
 ### Serializer (`serializers/write.py`, `serializers/read.py`)
 
 Handles validation and data transformation only:

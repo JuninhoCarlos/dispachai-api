@@ -5,7 +5,7 @@ from django.db.models import Prefetch, Q
 from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
 from django_filters.rest_framework import DjangoFilterBackend
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema
 from rest_framework.generics import (
     CreateAPIView,
     GenericAPIView,
@@ -138,6 +138,13 @@ class PagamentoListAPIView(ListAPIView):
 class ProcessoPendentesAPIView(GenericAPIView):
     permission_classes = [IsSuperUser]
 
+    @extend_schema(
+        responses=PolymorphicProxySerializer(
+            component_name="Pendente",
+            serializers=[PendentesImplantacaoSerializer, PendentesParcelaSerializer],
+            resource_type_field_name=None,
+        )
+    )
     def get(self, request, processo_id):
         get_object_or_404(Processo, pk=processo_id)
         today = now().date()
