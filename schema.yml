@@ -257,8 +257,20 @@ paths:
           description: ''
   /api/pagamento/processo/{processo_id}/pendentes:
     get:
-      operationId: pagamento_processo_pendentes_retrieve
+      operationId: pagamento_processo_pendentes_list
       parameters:
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: The initial index from which to return the results.
+        schema:
+          type: integer
       - in: path
         name: processo_id
         schema:
@@ -273,7 +285,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Pendente'
+                $ref: '#/components/schemas/PaginatedPendentesList'
           description: ''
   /api/pagamento/relatorio/receita:
     get:
@@ -691,6 +703,29 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PagamentoReader'
+    PaginatedPendentesList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Pendentes'
     PaginatedProcessoDetailList:
       type: object
       required:
@@ -714,56 +749,35 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ProcessoDetail'
-    Pendente:
-      oneOf:
-      - $ref: '#/components/schemas/PendentesImplantacao'
-      - $ref: '#/components/schemas/PendentesParcela'
-    PendentesImplantacao:
+    Pendentes:
       type: object
       properties:
         pagamento_id:
           type: integer
         tipo:
-          type: string
-          readOnly: true
+          $ref: '#/components/schemas/TipoEnum'
         status:
-          type: string
+          allOf:
+          - $ref: '#/components/schemas/StatusEnum'
           readOnly: true
         data_vencimento:
           type: string
           format: date
+          readOnly: true
         valor_pendente:
           type: string
-          readOnly: true
-      required:
-      - data_vencimento
-      - pagamento_id
-      - status
-      - tipo
-      - valor_pendente
-    PendentesParcela:
-      type: object
-      properties:
-        pagamento_id:
-          type: integer
-        tipo:
-          type: string
-          readOnly: true
-        status:
-          type: string
-          readOnly: true
-        data_vencimento:
-          type: string
-          format: date
-        valor_pendente:
-          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
           readOnly: true
         valor_pago:
           type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
           readOnly: true
         parcela:
           type: integer
           nullable: true
+          readOnly: true
       required:
       - data_vencimento
       - pagamento_id
@@ -964,6 +978,18 @@ components:
       - escritorio
       - periodo
       - total_receita
+    StatusEnum:
+      enum:
+      - PLANEJADO
+      - PAGO
+      - PARCIALMENTE_PAGO
+      - ATRASADO
+      type: string
+      description: |-
+        * `PLANEJADO` - Planejado
+        * `PAGO` - Pago
+        * `PARCIALMENTE_PAGO` - Parcialmente Pago
+        * `ATRASADO` - Atrasado
     TipoEnum:
       enum:
       - IMPLANTACAO

@@ -5,7 +5,7 @@ from django.db.models import Prefetch, Q
 from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
 from django_filters.rest_framework import DjangoFilterBackend
-from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework.generics import (
     CreateAPIView,
     GenericAPIView,
@@ -23,14 +23,12 @@ from .models import (
     PagamentoContrato,
     PagamentoEvento,
     PagamentoImplantacao,
-    PagamentoParcela,
     Processo,
     StatusPagamento,
 )
 from .serializers.read import (
     PagamentoReaderSerializer,
-    PendentesImplantacaoSerializer,
-    PendentesParcelaSerializer,
+    PendentesSerializer,
     ProcessoDetailSerializer,
     RelatorioReceitaSerializer,
 )
@@ -137,33 +135,32 @@ class PagamentoListAPIView(ListAPIView):
 
 class ProcessoPendentesAPIView(GenericAPIView):
     permission_classes = [IsSuperUser]
+    serializer_class = PendentesSerializer
+    queryset = Pagamento.objects.none()
 
-    @extend_schema(
-        responses=PolymorphicProxySerializer(
-            component_name="Pendente",
-            serializers=[PendentesImplantacaoSerializer, PendentesParcelaSerializer],
-            resource_type_field_name=None,
-        )
-    )
+    @extend_schema(responses=PendentesSerializer(many=True))
     def get(self, request, processo_id):
         get_object_or_404(Processo, pk=processo_id)
         today = now().date()
-        pending_filter = Q(status=StatusPagamento.PARCIALMENTE_PAGO) | Q(
-            status=StatusPagamento.PLANEJADO, data_vencimento__lt=today
+        pending_filter = (
+            Q(implantacao__status=StatusPagamento.PARCIALMENTE_PAGO)
+            | Q(
+                implantacao__status=StatusPagamento.PLANEJADO,
+                implantacao__data_vencimento__lt=today,
+            )
+            | Q(parcela__status=StatusPagamento.PARCIALMENTE_PAGO)
+            | Q(
+                parcela__status=StatusPagamento.PLANEJADO,
+                parcela__data_vencimento__lt=today,
+            )
         )
-        implantacoes = (
-            PagamentoImplantacao.objects.filter(pagamento__processo_id=processo_id)
+        pagamentos = (
+            Pagamento.objects.filter(processo_id=processo_id)
             .filter(pending_filter)
-            .select_related("pagamento")
+            .select_related("implantacao", "parcela")
         )
-        parcelas = (
-            PagamentoParcela.objects.filter(pagamento__processo_id=processo_id)
-            .filter(pending_filter)
-            .select_related("pagamento")
-        )
-        data = PendentesImplantacaoSerializer(implantacoes, many=True).data
-        data += PendentesParcelaSerializer(parcelas, many=True).data
-        return Response(data)
+        serializer = self.get_serializer(pagamentos, many=True)
+        return Response(serializer.data)
 
 
 class ReceitaRelatorioAPIView(GenericAPIView):

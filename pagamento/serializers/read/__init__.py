@@ -3,8 +3,7 @@ from .pagamento import (  # noqa: F401
     PagamentoParcelaReaderSerializer,
     PagamentoReaderSerializer,
     ParcelasSerializer,
-    PendentesImplantacaoSerializer,
-    PendentesParcelaSerializer,
+    PendentesSerializer,
     ProcessoDetailSerializer,
     StatusMixin,
 )
