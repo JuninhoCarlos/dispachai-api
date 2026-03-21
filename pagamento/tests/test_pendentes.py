@@ -205,3 +205,21 @@ class ProcessoPendentesAPIViewTestCase(TestCase):
         item = response.data[0]
         self.assertIn("valor_pago", item)
         self.assertEqual(Decimal(item["valor_pago"]), Decimal("0"))
+
+    def test_pendentes_ordered_by_pagamento_id(self):
+        create_implantacao(
+            self.processo,
+            data_vencimento=PAST_DATE,
+            status=StatusPagamento.PARCIALMENTE_PAGO,
+        )
+        create_implantacao(
+            self.processo,
+            data_vencimento=PAST_DATE,
+            status=StatusPagamento.PARCIALMENTE_PAGO,
+        )
+        self.client.force_authenticate(user=self.superuser)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 2)
+        ids = [item["pagamento_id"] for item in response.data]
+        self.assertEqual(ids, sorted(ids))
