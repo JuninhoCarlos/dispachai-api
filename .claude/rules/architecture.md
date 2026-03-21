@@ -55,8 +55,11 @@ class MyView(GenericAPIView):
     def post(self, request): ...
 ```
 
-When a response merges two polymorphic serializer types into one list, use
-`PolymorphicProxySerializer` with the discriminator field:
+**Prefer a single unified serializer over polymorphic dispatch.** Before reaching for
+`PolymorphicProxySerializer`, check whether a single serializer on the base model can
+resolve subtype fields via `SerializerMethodField`. Only use `PolymorphicProxySerializer`
+when response shapes are genuinely incompatible (e.g. different required fields with no
+shared base model). When it is truly necessary, annotate with the discriminator field:
 
 ```python
 from drf_spectacular.utils import extend_schema, PolymorphicProxySerializer
@@ -75,6 +78,15 @@ Never rely on drf-spectacular's fallback inference when `serializer_class` is ab
 dispatched dynamically — the generated schema will be wrong or empty.
 
 ### Serializer (`serializers/write.py`, `serializers/read.py`)
+
+**Prefer a single serializer per endpoint response.** When a read endpoint could return
+multiple subtypes (e.g. implantação and parcela payments in the same list), design the
+serializer to accept the common base model (`Pagamento`) and resolve subtype fields
+internally via `SerializerMethodField` or `to_representation()`. Only fall back to
+`PolymorphicProxySerializer` when the response shapes are genuinely incompatible and a
+unified model is not reachable without significant contortion. Annotate every
+`SerializerMethodField` with `@extend_schema_field` so drf-spectacular can infer the
+correct OpenAPI type.
 
 Handles validation and data transformation only:
 - Declare fields with appropriate validators

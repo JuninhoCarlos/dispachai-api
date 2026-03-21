@@ -1,6 +1,7 @@
 from datetime import date
 from decimal import Decimal
 
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from ...models import (
@@ -130,36 +131,16 @@ class PagamentoReaderSerializer(serializers.ModelSerializer):
         return data
 
 
-class PendentesImplantacaoSerializer(StatusMixin, serializers.ModelSerializer):
-    pagamento_id = serializers.IntegerField(source="pagamento.id")
-    tipo = serializers.SerializerMethodField()
+class PendentesSerializer(serializers.ModelSerializer):
+    pagamento_id = serializers.IntegerField(source="id")
     status = serializers.SerializerMethodField()
-    valor_pendente = serializers.SerializerMethodField()
-
-    class Meta:
-        model = PagamentoImplantacao
-        fields = ["pagamento_id", "tipo", "status", "data_vencimento", "valor_pendente"]
-
-    def get_tipo(self, obj):
-        return TipoPagamento.IMPLANTACAO
-
-    def get_valor_pendente(self, obj):
-        if obj.status == StatusPagamento.PARCIALMENTE_PAGO:
-            total_pago = PagamentoEventoService.calcular_total_pago(obj.pagamento)
-            return obj.valor_total - Decimal(str(total_pago))
-        return obj.valor_total
-
-
-class PendentesParcelaSerializer(StatusMixin, serializers.ModelSerializer):
-    pagamento_id = serializers.IntegerField(source="pagamento.id")
-    tipo = serializers.SerializerMethodField()
-    status = serializers.SerializerMethodField()
+    data_vencimento = serializers.SerializerMethodField()
     valor_pendente = serializers.SerializerMethodField()
     valor_pago = serializers.SerializerMethodField()
-    parcela = serializers.IntegerField(source="numero_parcela", allow_null=True)
+    parcela = serializers.SerializerMethodField()
 
     class Meta:
-        model = PagamentoParcela
+        model = Pagamento
         fields = [
             "pagamento_id",
             "tipo",
@@ -170,14 +151,47 @@ class PendentesParcelaSerializer(StatusMixin, serializers.ModelSerializer):
             "parcela",
         ]
 
-    def get_tipo(self, obj):
-        return obj.pagamento.tipo
+    def _get_subtype(self, obj):
+        if obj.tipo == TipoPagamento.IMPLANTACAO:
+            return obj.implantacao
+        return obj.parcela
 
+    @extend_schema_field(serializers.ChoiceField(choices=StatusPagamento.choices))
+    def get_status(self, obj):
+        subtype = self._get_subtype(obj)
+        if subtype.data_vencimento < date.today() and subtype.status not in (
+            StatusPagamento.PAGO,
+            StatusPagamento.PARCIALMENTE_PAGO,
+        ):
+            return StatusPagamento.ATRASADO
+        return subtype.status
+
+    @extend_schema_field(serializers.DateField())
+    def get_data_vencimento(self, obj):
+        return serializers.DateField().to_representation(
+            self._get_subtype(obj).data_vencimento
+        )
+
+    @extend_schema_field(serializers.DecimalField(max_digits=10, decimal_places=2))
     def get_valor_pendente(self, obj):
-        if obj.status == StatusPagamento.PARCIALMENTE_PAGO:
-            total_pago = PagamentoEventoService.calcular_total_pago(obj.pagamento)
-            return obj.valor_parcela - Decimal(str(total_pago))
-        return obj.valor_parcela
+        subtype = self._get_subtype(obj)
+        if obj.tipo == TipoPagamento.IMPLANTACAO:
+            if subtype.status == StatusPagamento.PARCIALMENTE_PAGO:
+                total_pago = PagamentoEventoService.calcular_total_pago(obj)
+                return subtype.valor_total - Decimal(str(total_pago))
+            return subtype.valor_total
+        else:
+            if subtype.status == StatusPagamento.PARCIALMENTE_PAGO:
+                total_pago = PagamentoEventoService.calcular_total_pago(obj)
+                return subtype.valor_parcela - Decimal(str(total_pago))
+            return subtype.valor_parcela
 
+    @extend_schema_field(serializers.DecimalField(max_digits=10, decimal_places=2))
     def get_valor_pago(self, obj):
-        return PagamentoEventoService.calcular_total_pago(obj.pagamento)
+        return PagamentoEventoService.calcular_total_pago(obj)
+
+    @extend_schema_field(serializers.IntegerField(allow_null=True))
+    def get_parcela(self, obj):
+        if obj.tipo == TipoPagamento.IMPLANTACAO:
+            return None
+        return obj.parcela.numero_parcela

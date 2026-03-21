@@ -179,3 +179,29 @@ class ProcessoPendentesAPIViewTestCase(TestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 0)
+
+    def test_pendentes_implantacao_has_null_parcela(self):
+        create_implantacao(
+            self.processo,
+            data_vencimento=PAST_DATE,
+            status=StatusPagamento.PLANEJADO,
+        )
+        self.client.force_authenticate(user=self.superuser)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        item = response.data[0]
+        self.assertIn("parcela", item)
+        self.assertIsNone(item["parcela"])
+
+    def test_pendentes_implantacao_has_valor_pago_zero(self):
+        create_implantacao(
+            self.processo,
+            data_vencimento=PAST_DATE,
+            status=StatusPagamento.PLANEJADO,
+        )
+        self.client.force_authenticate(user=self.superuser)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        item = response.data[0]
+        self.assertIn("valor_pago", item)
+        self.assertEqual(Decimal(item["valor_pago"]), Decimal("0"))
