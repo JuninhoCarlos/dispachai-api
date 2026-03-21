@@ -158,13 +158,14 @@ class RelatorioReceitaAPIViewTestCase(TestCase):
 
     def test_relatorio_receita_implantacao_commission_rules(self):
         """
-        Implantação rule: corretor takes % of advogado's gross, not of escritorio_base.
+        Implantação rule: corretor cuts from escritorio_base first;
+        advogado cuts from what remains.
 
         escritorio_base = 500 × 50% = 250
-        advogado_bruto  = 250 × 30% = 75
-        corretor        = 75  × 20% = 15   ← % of advogado's gross
-        advogado_net    = 75 - 15   = 60
-        escritorio      = 250 - 75  = 175  ← keeps base minus advogado's gross
+        corretor        = 250 × 20% = 50   ← % of escritorio_base
+        restante        = 250 - 50  = 200
+        advogado        = 200 × 30% = 60
+        escritorio      = 200 - 60  = 140
         """
         processo = create_processo(advogado=self.advogado, corretor=self.corretor)
         pagamento, _ = create_implantacao(
@@ -183,9 +184,9 @@ class RelatorioReceitaAPIViewTestCase(TestCase):
 
         data = response.data
         self.assertEqual(data["total_receita"], Decimal("250.00"))
-        self.assertEqual(data["escritorio"]["total_comissao"], Decimal("175.00"))
+        self.assertEqual(data["escritorio"]["total_comissao"], Decimal("140.00"))
         self.assertEqual(data["advogados"][0]["total_comissao"], Decimal("60.00"))
-        self.assertEqual(data["corretores"][0]["total_comissao"], Decimal("15.00"))
+        self.assertEqual(data["corretores"][0]["total_comissao"], Decimal("50.00"))
 
         # Verify periodo is echoed
         self.assertEqual(data["periodo"]["inicio"], "2025-01-01")
@@ -199,15 +200,17 @@ class RelatorioReceitaAPIViewTestCase(TestCase):
         adv_pag = adv_entry["processos"][0]["pagamentos"][0]
         self.assertEqual(adv_pag["pagamento_id"], pagamento.id)
         self.assertEqual(adv_pag["tipo"], "IMPLANTACAO")
-        self.assertEqual(adv_pag["receita"], Decimal("250.00"))  # escritorio_base
+        self.assertEqual(
+            adv_pag["receita"], Decimal("200.00")
+        )  # restante after corretor
         self.assertEqual(adv_pag["comissao_porcentagem"], Decimal("30.00"))
-        self.assertEqual(adv_pag["comissao_valor"], Decimal("60.00"))  # net
+        self.assertEqual(adv_pag["comissao_valor"], Decimal("60.00"))  # 200 × 30%
 
-        # Corretor entry: receita = advogado_bruto; valor = advogado_bruto × corretor%
+        # Corretor entry: receita = escritorio_base; valor = escritorio_base × corretor%
         cor_pag = data["corretores"][0]["processos"][0]["pagamentos"][0]
-        self.assertEqual(cor_pag["receita"], Decimal("75.00"))  # advogado_bruto
+        self.assertEqual(cor_pag["receita"], Decimal("250.00"))  # escritorio_base
         self.assertEqual(cor_pag["comissao_porcentagem"], Decimal("20.00"))
-        self.assertEqual(cor_pag["comissao_valor"], Decimal("15.00"))  # 75 × 20%
+        self.assertEqual(cor_pag["comissao_valor"], Decimal("50.00"))  # 250 × 20%
 
     def test_relatorio_receita_contrato_commission_rules(self):
         """

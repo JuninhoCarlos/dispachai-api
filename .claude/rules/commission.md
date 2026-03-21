@@ -18,14 +18,14 @@ payment types. Consult it before implementing or modifying any feature that touc
 
 ## Implantação
 
-> **Rule: Corretor cuts from the advogado's gross, not from the escritório base.**
+> **Rule: Corretor cuts from `escritorio_base` first; advogado cuts from what remains.**
 
 ```
 escritorio_base = valor_recebido × porcentagem_escritorio%
-advogado_bruto  = escritorio_base × advogado%
-corretor_valor  = advogado_bruto  × corretor%    ← % of advogado's gross
-advogado_net    = advogado_bruto  - corretor_valor
-escritorio      = escritorio_base - advogado_bruto
+corretor_valor  = escritorio_base × corretor%    ← first, from escritorio_base
+restante        = escritorio_base - corretor_valor
+advogado_valor  = restante × advogado%
+escritorio      = restante - advogado_valor
 ```
 
 **Example:** valor_recebido = 100, escritorio = 30%, advogado = 30%, corretor = 10%
@@ -33,23 +33,21 @@ escritorio      = escritorio_base - advogado_bruto
 | Party | Calculation | Amount |
 |---|---|---|
 | escritorio_base | 100 × 30% | 30 |
-| advogado_bruto | 30 × 30% | 9 |
-| corretor | 9 × 10% | 0.90 |
-| advogado_net | 9 − 0.90 | 8.10 |
-| escritório | 30 − 9 | 21 |
-| **Total** | 21 + 8.10 + 0.90 | **30** ✓ |
+| corretor | 30 × 10% | 3 |
+| restante | 30 − 3 | 27 |
+| advogado | 27 × 30% | 8.10 |
+| escritório | 27 − 8.10 | 18.90 |
+| **Total** | 3 + 8.10 + 18.90 | **30** ✓ |
 
 **Audit fields per pagamento entry:**
 
 | Field | Advogado entry | Corretor entry |
 |---|---|---|
-| `receita` | `escritorio_base` | `advogado_bruto` |
+| `receita` | `restante` (after corretor) | `escritorio_base` |
 | `comissao_porcentagem` | advogado% | corretor% |
-| `comissao_valor` | `advogado_net` (after deduction) | `corretor_valor` |
+| `comissao_valor` | `advogado_valor` | `corretor_valor` |
 
-Note: for the advogado entry, `receita × comissao_porcentagem ≠ comissao_valor` when a
-corretor is present, because `comissao_valor` is the net after the corretor deduction.
-`receita × porcentagem` gives the gross; subtract `gross × corretor%` to obtain the net.
+For both entries: `receita × comissao_porcentagem / 100 = comissao_valor` ✓
 
 ---
 
@@ -124,8 +122,8 @@ The invariant always holds: `total_receita = total_escritorio + Σ advogado + Σ
 
 Logic lives in `pagamento/services/relatorio_service.py`:
 
-- `_calcular_implantacao(total_recebido, porcentagem_escritorio, advogado_porcentagem)`
-  → returns `(escritorio_base, advogado_bruto, escritorio_liquido)`
+- `_calcular_implantacao(total_recebido, porcentagem_escritorio, advogado_porcentagem, corretor_porcentagem)`
+  → returns `(escritorio_base, corretor_valor, restante, advogado_valor, escritorio_liquido)`
 - `_calcular_contrato(total_recebido, advogado_porcentagem, corretor_porcentagem)`
   → returns `(corretor_valor, restante, advogado_valor, escritorio_liquido)`
 - `build_relatorio(eventos, data_inicio, data_fim)` — orchestrates both
