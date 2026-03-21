@@ -1,6 +1,3 @@
-import calendar
-from datetime import date
-
 from django.db.models import Prefetch, Q
 from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
@@ -16,7 +13,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from identity.permissions import IsSuperUser
-from pagamento.filter import PagamentoMonthYearFilter
+from pagamento.filter import PagamentoMonthYearFilter, RelatorioReceitaFilter
 
 from .models import (
     Pagamento,
@@ -170,34 +167,14 @@ class ReceitaRelatorioAPIView(GenericAPIView):
 
     @extend_schema(responses=RelatorioReceitaSerializer)
     def get(self, request):
-        today = now().date()
-        first_of_month = today.replace(day=1)
-        last_of_month = today.replace(
-            day=calendar.monthrange(today.year, today.month)[1]
-        )
-
-        data_inicio_str = request.query_params.get("data_inicio")
-        data_fim_str = request.query_params.get("data_fim")
-        advogado_id = request.query_params.get("advogado_id")
-
-        data_inicio = (
-            date.fromisoformat(data_inicio_str) if data_inicio_str else first_of_month
-        )
-        data_fim = date.fromisoformat(data_fim_str) if data_fim_str else last_of_month
-
-        eventos = PagamentoEvento.objects.filter(
-            data_pagamento__range=(data_inicio, data_fim)
-        ).select_related(
+        base_qs = PagamentoEvento.objects.select_related(
             "pagamento__processo__advogado",
             "pagamento__processo__corretor",
             "pagamento__processo__cliente",
             "pagamento__implantacao",
             "pagamento__parcela",
         )
-
-        if advogado_id:
-            eventos = eventos.filter(pagamento__processo__advogado_id=advogado_id)
-
-        relatorio = build_relatorio(eventos, data_inicio, data_fim)
+        f = RelatorioReceitaFilter(request.GET, queryset=base_qs)
+        relatorio = build_relatorio(f.qs, f.data_inicio_effective, f.data_fim_effective)
         serializer = RelatorioReceitaSerializer(relatorio)
         return Response(serializer.data)

@@ -319,6 +319,19 @@ class RelatorioReceitaAPIViewTestCase(TestCase):
         pag_entry = response.data["advogados"][0]["processos"][0]["pagamentos"][0]
         self.assertEqual(pag_entry["receita"], Decimal("30.00"))
 
+    def test_relatorio_receita_invalid_date_defaults_to_current_month(self):
+        """Invalid date input must not 500 — falls back to current month gracefully."""
+        self.client.force_authenticate(user=self.superuser)
+        response = self.client.get(
+            self.url, {"data_inicio": "not-a-date", "data_fim": "also-bad"}
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # periodo should reflect the current month defaults
+        today = timezone.now().date()
+        self.assertEqual(
+            response.data["periodo"]["inicio"], today.replace(day=1).isoformat()
+        )
+
     def test_relatorio_receita_processo_without_corretor(self):
         """corretores list is empty when no processo has a corretor."""
         processo = create_processo(advogado=self.advogado)  # no corretor

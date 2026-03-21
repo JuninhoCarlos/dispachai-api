@@ -174,6 +174,27 @@ does not match Criterion A or B, default to the serializer.
 
 ---
 
+## Filtering
+
+Always reach for `django_filters` before writing manual query-param parsing in a view.
+`django_filters.FilterSet` provides free input validation, type coercion, and graceful
+degradation on bad input — manual parsing with `date.fromisoformat()` or `int()` will
+raise unhandled exceptions on invalid user input.
+
+**Pattern:**
+1. Define a `FilterSet` in `<app>/filter.py` with typed filter fields
+   (`DateFilter`, `NumberFilter`, `CharFilter`, etc.).
+2. For non-trivial defaults (e.g. current-month fallback), override the `qs` property
+   and add effective-value properties for values the view needs to pass to a service.
+3. Wire into the view:
+   - `ListAPIView`: set `filter_backends = [DjangoFilterBackend]` and `filterset_class = MyFilter`.
+   - `GenericAPIView` with a custom `get()`: instantiate `MyFilter(request.GET, queryset=base_qs)` and use `f.qs` as the filtered queryset.
+
+Only write manual query-param parsing when `django_filters` genuinely cannot express
+the filtering logic. Document the reason inline.
+
+---
+
 ## Serializer File Layout
 
 Every app uses a `serializers/` package — never a flat `serializers.py` module.
