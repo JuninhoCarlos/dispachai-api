@@ -12,7 +12,7 @@ class Advogado(models.Model):
     comissao_padrao = models.DecimalField(
         max_digits=5,
         decimal_places=2,
-        default=30.00,
+        default=50.00,
         validators=[
             MinValueValidator(Decimal(0.01)),
             MaxValueValidator(Decimal(100.00)),
@@ -34,7 +34,7 @@ class Corretor(models.Model):
     comissao_padrao = models.DecimalField(
         max_digits=5,
         decimal_places=2,
-        default=30.00,
+        default=20.00,
         validators=[
             MinValueValidator(Decimal(0.01)),
             MaxValueValidator(Decimal(100.00)),
