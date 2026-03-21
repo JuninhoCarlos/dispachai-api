@@ -28,20 +28,25 @@ def _resolve_porcentagem(ajustada, padrao):
     return ajustada if ajustada is not None else padrao
 
 
-def _calcular_implantacao(total_recebido, porcentagem_escritorio, advogado_porcentagem):
+def _calcular_implantacao(
+    total_recebido, porcentagem_escritorio, advogado_porcentagem, corretor_porcentagem
+):
     """
     Implantação distribution:
       escritorio_base = total_recebido × porcentagem_escritorio%
-      advogado_bruto  = escritorio_base × advogado%
-      corretor_valor  = advogado_bruto × corretor%   (cuts from advogado's gross)
-      advogado_net    = advogado_bruto - corretor_valor
-      escritorio      = escritorio_base - advogado_bruto
-    Returns (escritorio_base, advogado_bruto, escritorio_liquido).
+      corretor_valor  = escritorio_base × corretor%   (cuts from escritorio_base first)
+      restante        = escritorio_base - corretor_valor
+      advogado_valor  = restante × advogado%
+      escritorio      = restante - advogado_valor
+    Returns (escritorio_base, corretor_valor, restante, advogado_valor,
+    escritorio_liquido).
     """
     escritorio_base = total_recebido * (porcentagem_escritorio / Decimal("100"))
-    advogado_bruto = escritorio_base * (advogado_porcentagem / Decimal("100"))
-    escritorio_liquido = escritorio_base - advogado_bruto
-    return escritorio_base, advogado_bruto, escritorio_liquido
+    corretor_valor = escritorio_base * (corretor_porcentagem / Decimal("100"))
+    restante = escritorio_base - corretor_valor
+    advogado_valor = restante * (advogado_porcentagem / Decimal("100"))
+    escritorio_liquido = restante - advogado_valor
+    return escritorio_base, corretor_valor, restante, advogado_valor, escritorio_liquido
 
 
 def _calcular_contrato(total_recebido, advogado_porcentagem, corretor_porcentagem):
@@ -89,24 +94,30 @@ def build_relatorio(eventos, data_inicio, data_fim):
 
         if pagamento.tipo == TipoPagamento.IMPLANTACAO:
             porcentagem_escritorio = pagamento.implantacao.porcentagem_escritorio
-            escritorio_base, advogado_bruto, escritorio_liquido = _calcular_implantacao(
-                total_recebido, porcentagem_escritorio, advogado_porcentagem
-            )
 
-            corretor_valor = Decimal("0.00")
             corretor_porcentagem = None
+            corretor_porcentagem_valor = Decimal("0.00")
             if corretor:
                 corretor_porcentagem = _resolve_porcentagem(
                     processo.comissao_ajustada_corretor, corretor.comissao_padrao
                 )
-                corretor_valor = advogado_bruto * (
-                    corretor_porcentagem / Decimal("100")
-                )
+                corretor_porcentagem_valor = corretor_porcentagem
 
-            advogado_valor = advogado_bruto - corretor_valor
+            (
+                escritorio_base,
+                corretor_valor,
+                restante,
+                advogado_valor,
+                escritorio_liquido,
+            ) = _calcular_implantacao(
+                total_recebido,
+                porcentagem_escritorio,
+                advogado_porcentagem,
+                corretor_porcentagem_valor,
+            )
             receita_total = escritorio_base
-            receita_advogado = escritorio_base
-            receita_corretor = advogado_bruto
+            receita_advogado = restante
+            receita_corretor = escritorio_base
 
         else:  # CONTRATO_PARCELA or CONTRATO_ENTRADA
             corretor_porcentagem = None
