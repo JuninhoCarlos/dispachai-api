@@ -158,6 +158,7 @@ class ProcessoPendentesAPIView(GenericAPIView):
             Pagamento.objects.filter(processo_id=processo_id)
             .filter(pending_filter)
             .select_related("implantacao", "parcela")
+            .order_by("id")
         )
         serializer = self.get_serializer(pagamentos, many=True)
         return Response(serializer.data)
