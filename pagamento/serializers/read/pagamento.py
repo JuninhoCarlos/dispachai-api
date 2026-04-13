@@ -11,6 +11,7 @@ from ...models import (
     Processo,
     StatusPagamento,
     TipoPagamento,
+    TipoRepasse,
 )
 from ...services.pagamento_service import PagamentoEventoService
 
@@ -96,6 +97,8 @@ class PagamentoParcelaReaderSerializer(StatusMixin, serializers.ModelSerializer)
 
 class PagamentoReaderSerializer(serializers.ModelSerializer):
     processo = serializers.SerializerMethodField()
+    status_repasse_advogado = serializers.SerializerMethodField()
+    status_repasse_corretor = serializers.SerializerMethodField()
 
     class Meta:
         model = Pagamento
@@ -103,16 +106,28 @@ class PagamentoReaderSerializer(serializers.ModelSerializer):
             "tipo",
             "criado_em",
             "processo",
+            "status_repasse_advogado",
+            "status_repasse_corretor",
         ]
 
     def get_processo(self, obj):
         return {
             "id_processo": obj.processo.id,
-            "id_cliente": obj.processo.cliente.id,
-            "cliente": obj.processo.cliente.nome,
+            "id_cliente": obj.processo.cliente.id if obj.processo.cliente else None,
+            "cliente": obj.processo.cliente.nome if obj.processo.cliente else None,
             "advogado": obj.processo.advogado.nome,
             "corretor": obj.processo.corretor.nome if obj.processo.corretor else None,
         }
+
+    def get_status_repasse_advogado(self, obj):
+        has_repasse = any(r.tipo == TipoRepasse.ADVOGADO for r in obj.repasses.all())
+        return "REPASSADO" if has_repasse else "PENDENTE"
+
+    def get_status_repasse_corretor(self, obj):
+        if obj.processo.corretor is None:
+            return "N/A"
+        has_repasse = any(r.tipo == TipoRepasse.CORRETOR for r in obj.repasses.all())
+        return "REPASSADO" if has_repasse else "PENDENTE"
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

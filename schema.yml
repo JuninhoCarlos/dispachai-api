@@ -131,6 +131,38 @@ paths:
               schema:
                 $ref: '#/components/schemas/Pagar'
           description: ''
+  /api/pagamento/{pagamento_id}/repassar:
+    post:
+      operationId: pagamento_repassar_create
+      parameters:
+      - in: path
+        name: pagamento_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - pagamento
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RepasseInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RepasseInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RepasseInput'
+        required: true
+      security:
+      - knoxApiToken: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RepasseInput'
+          description: ''
   /api/pagamento/contrato:
     post:
       operationId: pagamento_contrato_create
@@ -583,7 +615,7 @@ components:
       type: object
       properties:
         tipo:
-          $ref: '#/components/schemas/TipoEnum'
+          $ref: '#/components/schemas/Tipo171Enum'
         criado_em:
           type: string
           format: date-time
@@ -591,9 +623,17 @@ components:
         processo:
           type: string
           readOnly: true
+        status_repasse_advogado:
+          type: string
+          readOnly: true
+        status_repasse_corretor:
+          type: string
+          readOnly: true
       required:
       - criado_em
       - processo
+      - status_repasse_advogado
+      - status_repasse_corretor
       - tipo
     Pagar:
       type: object
@@ -755,7 +795,7 @@ components:
         pagamento_id:
           type: integer
         tipo:
-          $ref: '#/components/schemas/TipoEnum'
+          $ref: '#/components/schemas/Tipo171Enum'
         status:
           allOf:
           - $ref: '#/components/schemas/StatusEnum'
@@ -978,6 +1018,25 @@ components:
       - escritorio
       - periodo
       - total_receita
+    RepasseInput:
+      type: object
+      properties:
+        tipo:
+          $ref: '#/components/schemas/RepasseInputTipoEnum'
+        data_repasse:
+          type: string
+          format: date
+      required:
+      - data_repasse
+      - tipo
+    RepasseInputTipoEnum:
+      enum:
+      - ADVOGADO
+      - CORRETOR
+      type: string
+      description: |-
+        * `ADVOGADO` - Advogado
+        * `CORRETOR` - Corretor
     StatusEnum:
       enum:
       - PLANEJADO
@@ -990,7 +1049,7 @@ components:
         * `PAGO` - Pago
         * `PARCIALMENTE_PAGO` - Parcialmente Pago
         * `ATRASADO` - Atrasado
-    TipoEnum:
+    Tipo171Enum:
       enum:
       - IMPLANTACAO
       - CONTRATO_PARCELA

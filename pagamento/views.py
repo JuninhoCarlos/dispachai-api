@@ -3,6 +3,7 @@ from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema
+from rest_framework import status
 from rest_framework.generics import (
     CreateAPIView,
     GenericAPIView,
@@ -28,15 +29,18 @@ from .serializers.read import (
     PendentesSerializer,
     ProcessoDetailSerializer,
     RelatorioReceitaSerializer,
+    RepasseReadSerializer,
 )
 from .serializers.write import (
     PagamentoContratoSerializer,
     PagamentoImplantacaoSerializer,
     PagarSerializer,
     ProcessoSerializer,
+    RepasseInputSerializer,
 )
 from .services.pagamento_service import PagamentoService
 from .services.relatorio_service import build_relatorio
+from .services.repasse_service import RepasseService
 
 
 class ProcessoListCreateAPIView(ListCreateAPIView):
@@ -116,13 +120,17 @@ class PagarPagamentosGenericView(GenericAPIView):
 class PagamentoListAPIView(ListAPIView):
     # the prefetch related is done in the filter to optimize the queries
     # Fetch only IMPLANTACAO and ENTRADA types
-    queryset = Pagamento.objects.select_related(
-        "processo",
-        "processo__advogado",
-        "processo__corretor",
-        "implantacao",
-        "parcela__contrato",
-    ).distinct()
+    queryset = (
+        Pagamento.objects.select_related(
+            "processo",
+            "processo__advogado",
+            "processo__corretor",
+            "implantacao",
+            "parcela__contrato",
+        )
+        .prefetch_related("repasses")
+        .distinct()
+    )
 
     serializer_class = PagamentoReaderSerializer
     permission_classes = [IsAuthenticated]
@@ -159,6 +167,33 @@ class ProcessoPendentesAPIView(GenericAPIView):
         )
         serializer = self.get_serializer(pagamentos, many=True)
         return Response(serializer.data)
+
+
+class RepassarView(GenericAPIView):
+    serializer_class = RepasseInputSerializer
+    permission_classes = [IsSuperUser]
+    queryset = Pagamento.objects.select_related(
+        "processo__advogado",
+        "processo__corretor",
+        "implantacao",
+        "parcela",
+    )
+
+    def post(self, request, pagamento_id):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        pagamento = get_object_or_404(self.get_queryset(), id=pagamento_id)
+
+        repasse = RepasseService.repassar(
+            pagamento=pagamento,
+            tipo=serializer.validated_data["tipo"],
+            data_repasse=serializer.validated_data["data_repasse"],
+        )
+
+        return Response(
+            RepasseReadSerializer(repasse).data, status=status.HTTP_201_CREATED
+        )
 
 
 class ReceitaRelatorioAPIView(GenericAPIView):
