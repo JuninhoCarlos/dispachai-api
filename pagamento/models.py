@@ -196,3 +196,38 @@ class PagamentoEvento(models.Model):
     valor_recebido = models.DecimalField(max_digits=10, decimal_places=2)
     data_pagamento = models.DateField(blank=False, null=False)
     criado_em = models.DateTimeField(auto_now_add=True)
+
+
+class TipoRepasse(models.TextChoices):
+    ADVOGADO = "ADVOGADO", "Advogado"
+    CORRETOR = "CORRETOR", "Corretor"
+
+
+class Repasse(models.Model):
+    pagamento = models.ForeignKey(
+        Pagamento,
+        on_delete=models.PROTECT,
+        related_name="repasses",
+    )
+    eventos = models.ManyToManyField(PagamentoEvento, related_name="repasses")
+    tipo = models.CharField(max_length=20, choices=TipoRepasse.choices)
+    advogado = models.ForeignKey(
+        Advogado,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+    )
+    corretor = models.ForeignKey(
+        Corretor,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+    )
+    valor_repassado = models.DecimalField(max_digits=10, decimal_places=2)
+    valor_total = models.DecimalField(max_digits=10, decimal_places=2)
+    comissao_porcentagem = models.DecimalField(max_digits=5, decimal_places=2)
+    data_repasse = models.DateField()
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Repasse"

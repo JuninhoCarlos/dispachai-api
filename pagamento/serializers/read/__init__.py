@@ -16,3 +16,4 @@ from .relatorio_serializers import (  # noqa: F401
     RelatorioProcessoItemSerializer,
     RelatorioReceitaSerializer,
 )
+from .repasse import RepasseReadSerializer  # noqa: F401

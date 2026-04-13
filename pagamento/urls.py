@@ -9,6 +9,7 @@ from .views import (
     ProcessoListCreateAPIView,
     ProcessoPendentesAPIView,
     ReceitaRelatorioAPIView,
+    RepassarView,
 )
 
 urlpatterns = [
@@ -41,6 +42,11 @@ urlpatterns = [
         "pagamento/<int:pagamento_id>/pagar",
         PagarPagamentosGenericView.as_view(),
         name="pagamento_pagar",
+    ),
+    path(
+        "pagamento/<int:pagamento_id>/repassar",
+        RepassarView.as_view(),
+        name="pagamento_repassar",
     ),
     path("pagamento", PagamentoListAPIView.as_view(), name="pagamento_list"),
     path(

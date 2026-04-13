@@ -16,6 +16,7 @@ from ..models import (
     StatusPagamento,
     TipoPagamento,
     TipoParcela,
+    TipoRepasse,
 )
 
 
@@ -236,3 +237,8 @@ class PagarSerializer(serializers.Serializer):
         if value <= 0:
             raise serializers.ValidationError("O valor pago deve ser maior que zero.")
         return value
+
+
+class RepasseInputSerializer(serializers.Serializer):
+    tipo = serializers.ChoiceField(choices=TipoRepasse.choices)
+    data_repasse = serializers.DateField()
