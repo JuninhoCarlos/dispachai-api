@@ -39,7 +39,8 @@ class RepasseService:
             raise ValidationError(
                 {
                     "non_field_errors": (
-                        "Já existe um repasse registrado para este período para este mesmo pagamento."
+                        "Já existe um repasse registrado"
+                        " para este período."
                     )
                 }
             )
