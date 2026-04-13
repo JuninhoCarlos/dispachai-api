@@ -1,5 +1,22 @@
 # Architecture Guidelines
 
+## Naming Conventions
+
+Use full, descriptive names for all variables and parameters — never abbreviate. Examples:
+
+| Avoid | Use instead |
+|---|---|
+| `adv` | `advogado` |
+| `cor`, `corr` | `corretor` |
+| `pag` | `pagamento` |
+| `proc` | `processo` |
+| `repasse_status_adv` | `repasse_status_advogado` |
+| `repasse_status_cor` | `repasse_status_corretor` |
+
+This applies everywhere: service functions, serializers, views, and tests.
+
+---
+
 ## Layered Architecture
 
 This project uses a strict three-layer model. Each layer has exactly one job.

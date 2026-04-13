@@ -13,6 +13,7 @@ class RelatorioPagamentoItemSerializer(serializers.Serializer):
     comissao_valor = serializers.DecimalField(
         max_digits=12, decimal_places=2, coerce_to_string=False
     )
+    repasse_status = serializers.CharField()
 
 
 class RelatorioProcessoItemSerializer(serializers.Serializer):

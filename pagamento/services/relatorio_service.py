@@ -1,10 +1,16 @@
 from decimal import Decimal
 
-from ..models import TipoPagamento
+from ..models import Repasse, TipoPagamento
 
 
 def _add_pagamento_to_processo(
-    processos_map, processo, pagamento, receita, comissao_porcentagem, comissao_valor
+    processos_map,
+    processo,
+    pagamento,
+    receita,
+    comissao_porcentagem,
+    comissao_valor,
+    repasse_status,
 ):
     processo_id = processo.id
     if processo_id not in processos_map:
@@ -20,6 +26,7 @@ def _add_pagamento_to_processo(
             "receita": receita,
             "comissao_porcentagem": comissao_porcentagem,
             "comissao_valor": comissao_valor,
+            "repasse_status": repasse_status,
         }
     )
 
@@ -75,6 +82,13 @@ def build_relatorio(eventos, data_inicio, data_fim):
                 "total_recebido": Decimal("0.00"),
             }
         pagamento_totais[pagamento_id]["total_recebido"] += evento.valor_recebido
+
+    pagamento_ids = list(pagamento_totais.keys())
+    repassados = set(
+        Repasse.objects.filter(pagamento_id__in=pagamento_ids).values_list(
+            "pagamento_id", "tipo"
+        )
+    )
 
     advogado_map = {}
     corretor_map = {}
@@ -148,6 +162,9 @@ def build_relatorio(eventos, data_inicio, data_fim):
                 "processos": {},
             }
         advogado_map[advogado.id]["total_comissao"] += advogado_valor
+        repasse_status_adv = (
+            "REPASSADO" if (pagamento.id, "ADVOGADO") in repassados else "PENDENTE"
+        )
         _add_pagamento_to_processo(
             advogado_map[advogado.id]["processos"],
             processo,
@@ -155,6 +172,7 @@ def build_relatorio(eventos, data_inicio, data_fim):
             receita_advogado,
             advogado_porcentagem,
             advogado_valor,
+            repasse_status_adv,
         )
 
         if corretor:
@@ -166,6 +184,9 @@ def build_relatorio(eventos, data_inicio, data_fim):
                     "processos": {},
                 }
             corretor_map[corretor.id]["total_comissao"] += corretor_valor
+            repasse_status_corretor = (
+                "REPASSADO" if (pagamento.id, "CORRETOR") in repassados else "PENDENTE"
+            )
             _add_pagamento_to_processo(
                 corretor_map[corretor.id]["processos"],
                 processo,
@@ -173,6 +194,7 @@ def build_relatorio(eventos, data_inicio, data_fim):
                 receita_corretor,
                 corretor_porcentagem,
                 corretor_valor,
+                repasse_status_corretor,
             )
 
     for advogado_entry in advogado_map.values():

@@ -7,7 +7,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from pagamento.models import PagamentoEvento
+from pagamento.models import PagamentoEvento, Repasse, TipoRepasse
 from pagamento.tests import (
     create_advogado,
     create_implantacao,
@@ -344,3 +344,109 @@ class RelatorioReceitaAPIViewTestCase(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["corretores"], [])
+
+    def test_pagamento_advogado_shows_repassado_when_repasse_exists(self):
+        """repasse_status is REPASSADO under advogados when ADVOGADO Repasse exists."""
+        processo = create_processo(advogado=self.advogado)
+        pagamento, _ = create_implantacao(processo, data_vencimento=date(2025, 1, 1))
+        create_evento(pagamento, Decimal("100.00"), date(2025, 1, 15))
+        Repasse.objects.create(
+            pagamento=pagamento,
+            tipo=TipoRepasse.ADVOGADO,
+            advogado=self.advogado,
+            valor_repassado=Decimal("9.00"),
+            valor_total=Decimal("30.00"),
+            comissao_porcentagem=Decimal("30.00"),
+            data_repasse=date(2025, 1, 20),
+        )
+
+        self.client.force_authenticate(user=self.superuser)
+        response = self.client.get(
+            self.url, {"data_inicio": "2025-01-01", "data_fim": "2025-01-31"}
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        pag_entry = response.data["advogados"][0]["processos"][0]["pagamentos"][0]
+        self.assertEqual(pag_entry["repasse_status"], "REPASSADO")
+
+    def test_pagamento_advogado_shows_pendente_when_no_repasse(self):
+        """repasse_status is PENDENTE under advogados when no Repasse exists."""
+        processo = create_processo(advogado=self.advogado)
+        pagamento, _ = create_implantacao(processo, data_vencimento=date(2025, 1, 1))
+        create_evento(pagamento, Decimal("100.00"), date(2025, 1, 15))
+
+        self.client.force_authenticate(user=self.superuser)
+        response = self.client.get(
+            self.url, {"data_inicio": "2025-01-01", "data_fim": "2025-01-31"}
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        pag_entry = response.data["advogados"][0]["processos"][0]["pagamentos"][0]
+        self.assertEqual(pag_entry["repasse_status"], "PENDENTE")
+
+    def test_pagamento_corretor_shows_repassado_when_repasse_exists(self):
+        """repasse_status is REPASSADO under corretores when CORRETOR Repasse exists."""
+        processo = create_processo(advogado=self.advogado, corretor=self.corretor)
+        pagamento, _ = create_implantacao(processo, data_vencimento=date(2025, 1, 1))
+        create_evento(pagamento, Decimal("100.00"), date(2025, 1, 15))
+        Repasse.objects.create(
+            pagamento=pagamento,
+            tipo=TipoRepasse.CORRETOR,
+            corretor=self.corretor,
+            valor_repassado=Decimal("6.00"),
+            valor_total=Decimal("30.00"),
+            comissao_porcentagem=Decimal("20.00"),
+            data_repasse=date(2025, 1, 20),
+        )
+
+        self.client.force_authenticate(user=self.superuser)
+        response = self.client.get(
+            self.url, {"data_inicio": "2025-01-01", "data_fim": "2025-01-31"}
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        pag_entry = response.data["corretores"][0]["processos"][0]["pagamentos"][0]
+        self.assertEqual(pag_entry["repasse_status"], "REPASSADO")
+
+    def test_pagamento_corretor_shows_pendente_when_no_repasse(self):
+        """repasse_status is PENDENTE under corretores when no CORRETOR Repasse."""
+        processo = create_processo(advogado=self.advogado, corretor=self.corretor)
+        pagamento, _ = create_implantacao(processo, data_vencimento=date(2025, 1, 1))
+        create_evento(pagamento, Decimal("100.00"), date(2025, 1, 15))
+
+        self.client.force_authenticate(user=self.superuser)
+        response = self.client.get(
+            self.url, {"data_inicio": "2025-01-01", "data_fim": "2025-01-31"}
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        pag_entry = response.data["corretores"][0]["processos"][0]["pagamentos"][0]
+        self.assertEqual(pag_entry["repasse_status"], "PENDENTE")
+
+    def test_repasse_status_is_per_party_independent(self):
+        """ADVOGADO repasse does not affect CORRETOR repasse_status and vice versa."""
+        processo = create_processo(advogado=self.advogado, corretor=self.corretor)
+        pagamento, _ = create_implantacao(processo, data_vencimento=date(2025, 1, 1))
+        create_evento(pagamento, Decimal("100.00"), date(2025, 1, 15))
+        # Only ADVOGADO repasse exists
+        Repasse.objects.create(
+            pagamento=pagamento,
+            tipo=TipoRepasse.ADVOGADO,
+            advogado=self.advogado,
+            valor_repassado=Decimal("9.00"),
+            valor_total=Decimal("30.00"),
+            comissao_porcentagem=Decimal("30.00"),
+            data_repasse=date(2025, 1, 20),
+        )
+
+        self.client.force_authenticate(user=self.superuser)
+        response = self.client.get(
+            self.url, {"data_inicio": "2025-01-01", "data_fim": "2025-01-31"}
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        adv_pag = response.data["advogados"][0]["processos"][0]["pagamentos"][0]
+        self.assertEqual(adv_pag["repasse_status"], "REPASSADO")
+
+        cor_pag = response.data["corretores"][0]["processos"][0]["pagamentos"][0]
+        self.assertEqual(cor_pag["repasse_status"], "PENDENTE")
