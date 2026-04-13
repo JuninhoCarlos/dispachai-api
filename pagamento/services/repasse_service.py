@@ -63,7 +63,7 @@ class RepasseService:
 
         if pagamento.tipo == TipoPagamento.IMPLANTACAO:
             porcentagem_escritorio = pagamento.implantacao.porcentagem_escritorio
-            _, corretor_valor, restante, advogado_valor, _ = _calcular_implantacao(
+            _, corretor_valor, _, advogado_valor, _ = _calcular_implantacao(
                 valor_total,
                 porcentagem_escritorio,
                 advogado_porcentagem,
