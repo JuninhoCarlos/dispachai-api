@@ -956,11 +956,14 @@ components:
           minimum: -10000000000
           exclusiveMaximum: true
           exclusiveMinimum: true
+        repasse_status:
+          type: string
       required:
       - comissao_porcentagem
       - comissao_valor
       - pagamento_id
       - receita
+      - repasse_status
       - tipo
     RelatorioPeriodo:
       type: object
