@@ -69,7 +69,7 @@ class RepasseService:
                 corretor_porcentagem,
             )
         else:
-            corretor_valor, restante, advogado_valor, _ = _calcular_contrato(
+            corretor_valor, _, advogado_valor, _ = _calcular_contrato(
                 valor_total, advogado_porcentagem, corretor_porcentagem
             )
 
