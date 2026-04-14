@@ -19,6 +19,7 @@ Follow PEP-8. Use `black` for formatting — always run it before finishing any 
 - Use trailing commas in multi-line collections
 - Imports ordered: stdlib → third-party → local (isort order)
 - Variables and functions in `snake_case`, classes in `PascalCase`
+- **Never use implicit string concatenation** (adjacent string literals). Always write a single string. Black may silently join or re-split adjacent literals in ways that trigger Sonar warnings. If a string would exceed 88 characters, shorten the content rather than splitting it across literals.
 
 ---
 

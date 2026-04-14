@@ -214,19 +214,14 @@ class ReceitaRelatorioAPIView(GenericAPIView):
                 type={"type": "string", "format": "date"},
                 location=OpenApiParameter.QUERY,
                 required=False,
-                description=(
-                    "Start date (YYYY-MM-DD). "
-                    "Defaults to first day of current month."
-                ),
+                description="Start date (YYYY-MM-DD). Default: first day of month.",
             ),
             OpenApiParameter(
                 name="data_fim",
                 type={"type": "string", "format": "date"},
                 location=OpenApiParameter.QUERY,
                 required=False,
-                description=(
-                    "End date (YYYY-MM-DD). " "Defaults to last day of current month."
-                ),
+                description="End date (YYYY-MM-DD). Default: last day of month.",
             ),
             OpenApiParameter(
                 name="advogado_id",
@@ -240,10 +235,7 @@ class ReceitaRelatorioAPIView(GenericAPIView):
                 type={"type": "string"},
                 location=OpenApiParameter.QUERY,
                 required=False,
-                description=(
-                    'Pass "ALL" to include payments that already have a repasse. '
-                    "Omit to return only payments without a repasse."
-                ),
+                description='Pass "ALL" to include payments with an existing repasse.',
             ),
         ],
     )
@@ -280,20 +272,14 @@ class RecolhimentoRelatorioAPIView(GenericAPIView):
                 type={"type": "string", "format": "date"},
                 location=OpenApiParameter.QUERY,
                 required=False,
-                description=(
-                    "Filter by data_vencimento ≥ this date (YYYY-MM-DD). "
-                    "Omit to return all dates."
-                ),
+                description="Start of data_vencimento filter (YYYY-MM-DD).",
             ),
             OpenApiParameter(
                 name="data_fim",
                 type={"type": "string", "format": "date"},
                 location=OpenApiParameter.QUERY,
                 required=False,
-                description=(
-                    "Filter by data_vencimento ≤ this date (YYYY-MM-DD). "
-                    "Omit to return all dates."
-                ),
+                description="End of data_vencimento filter (YYYY-MM-DD).",
             ),
         ],
     )

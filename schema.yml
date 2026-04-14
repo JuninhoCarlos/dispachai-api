@@ -333,19 +333,18 @@ paths:
         schema:
           type: string
           format: date
-        description: End date (YYYY-MM-DD). Defaults to last day of current month.
+        description: 'End date (YYYY-MM-DD). Default: last day of month.'
       - in: query
         name: data_inicio
         schema:
           type: string
           format: date
-        description: Start date (YYYY-MM-DD). Defaults to first day of current month.
+        description: 'Start date (YYYY-MM-DD). Default: first day of month.'
       - in: query
         name: repasse_status
         schema:
           type: string
-        description: Pass "ALL" to include payments that already have a repasse. Omit
-          to return only payments without a repasse.
+        description: Pass "ALL" to include payments with an existing repasse.
       tags:
       - pagamento
       security:
@@ -371,15 +370,13 @@ paths:
         schema:
           type: string
           format: date
-        description: Filter by data_vencimento ≤ this date (YYYY-MM-DD). Omit to return
-          all dates.
+        description: End of data_vencimento filter (YYYY-MM-DD).
       - in: query
         name: data_inicio
         schema:
           type: string
           format: date
-        description: Filter by data_vencimento ≥ this date (YYYY-MM-DD). Omit to return
-          all dates.
+        description: Start of data_vencimento filter (YYYY-MM-DD).
       tags:
       - pagamento
       security:
