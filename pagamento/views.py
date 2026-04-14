@@ -14,7 +14,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from identity.permissions import IsSuperUser
-from pagamento.filter import PagamentoMonthYearFilter, RelatorioReceitaFilter
+from pagamento.filter import (
+    PagamentoMonthYearFilter,
+    RelatorioReceitaFilter,
+    RelatorioRecolhimentoFilter,
+)
 
 from .models import (
     Pagamento,
@@ -29,6 +33,7 @@ from .serializers.read import (
     PendentesSerializer,
     ProcessoDetailSerializer,
     RelatorioReceitaSerializer,
+    RelatorioRecolhimentoSerializer,
     RepasseReadSerializer,
 )
 from .serializers.write import (
@@ -39,7 +44,7 @@ from .serializers.write import (
     RepasseInputSerializer,
 )
 from .services.pagamento_service import PagamentoService
-from .services.relatorio_service import build_relatorio
+from .services.relatorio_service import build_recolhimento, build_relatorio
 from .services.repasse_service import RepasseService
 
 
@@ -212,4 +217,25 @@ class ReceitaRelatorioAPIView(GenericAPIView):
         f = RelatorioReceitaFilter(request.GET, queryset=base_qs)
         relatorio = build_relatorio(f.qs, f.data_inicio_effective, f.data_fim_effective)
         serializer = RelatorioReceitaSerializer(relatorio)
+        return Response(serializer.data)
+
+
+class RecolhimentoRelatorioAPIView(GenericAPIView):
+    permission_classes = [IsSuperUser]
+    serializer_class = RelatorioRecolhimentoSerializer
+
+    @extend_schema(responses=RelatorioRecolhimentoSerializer)
+    def get(self, request):
+        base_qs = Pagamento.objects.select_related(
+            "processo__advogado",
+            "processo__corretor",
+            "processo__cliente",
+            "implantacao",
+            "parcela",
+        )
+        f = RelatorioRecolhimentoFilter(request.GET, queryset=base_qs)
+        relatorio = build_recolhimento(
+            f.qs, f.data_inicio_effective, f.data_fim_effective
+        )
+        serializer = RelatorioRecolhimentoSerializer(relatorio)
         return Response(serializer.data)

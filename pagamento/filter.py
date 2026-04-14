@@ -9,6 +9,7 @@ from .models import (
     Pagamento,
     PagamentoEvento,
     Repasse,
+    StatusPagamento,
     TipoPagamento,
 )
 
@@ -102,4 +103,65 @@ class RelatorioReceitaFilter(django_filters.FilterSet):
         if self.data.get("repasse_status", "").strip().upper() != "ALL":
             has_repasse = Repasse.objects.filter(pagamento_id=OuterRef("pagamento_id"))
             qs = qs.exclude(Exists(has_repasse))
+        return qs
+
+
+class RelatorioRecolhimentoFilter(django_filters.FilterSet):
+    advogado_id = django_filters.NumberFilter(field_name="processo__advogado_id")
+    data_inicio = django_filters.DateFilter(method="filter_noop_data")
+    data_fim = django_filters.DateFilter(method="filter_noop_data")
+
+    class Meta:
+        model = Pagamento
+        fields = ["advogado_id", "data_inicio", "data_fim"]
+
+    def filter_noop_data(self, queryset, name, value):
+        return queryset
+
+    @property
+    def data_inicio_effective(self):
+        return self.form.cleaned_data.get("data_inicio") if self.is_bound else None
+
+    @property
+    def data_fim_effective(self):
+        return self.form.cleaned_data.get("data_fim") if self.is_bound else None
+
+    @property
+    def qs(self):
+        qs = super().qs  # advogado_id filter applied here
+        data_inicio = self.data_inicio_effective
+        data_fim = self.data_fim_effective
+        pendentes = [StatusPagamento.PLANEJADO, StatusPagamento.PARCIALMENTE_PAGO]
+        qs = qs.filter(
+            Q(
+                tipo=TipoPagamento.IMPLANTACAO,
+                implantacao__status__in=pendentes,
+            )
+            | Q(
+                tipo__in=[TipoPagamento.ENTRADA, TipoPagamento.PARCELA],
+                parcela__status__in=pendentes,
+            )
+        )
+        if data_inicio:
+            qs = qs.filter(
+                Q(
+                    tipo=TipoPagamento.IMPLANTACAO,
+                    implantacao__data_vencimento__gte=data_inicio,
+                )
+                | Q(
+                    tipo__in=[TipoPagamento.ENTRADA, TipoPagamento.PARCELA],
+                    parcela__data_vencimento__gte=data_inicio,
+                )
+            )
+        if data_fim:
+            qs = qs.filter(
+                Q(
+                    tipo=TipoPagamento.IMPLANTACAO,
+                    implantacao__data_vencimento__lte=data_fim,
+                )
+                | Q(
+                    tipo__in=[TipoPagamento.ENTRADA, TipoPagamento.PARCELA],
+                    parcela__data_vencimento__lte=data_fim,
+                )
+            )
         return qs
