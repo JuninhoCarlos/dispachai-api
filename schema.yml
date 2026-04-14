@@ -322,6 +322,30 @@ paths:
   /api/pagamento/relatorio/receita:
     get:
       operationId: pagamento_relatorio_receita_retrieve
+      parameters:
+      - in: query
+        name: advogado_id
+        schema:
+          type: integer
+        description: Filter events by advogado ID.
+      - in: query
+        name: data_fim
+        schema:
+          type: string
+          format: date
+        description: End date (YYYY-MM-DD). Defaults to last day of current month.
+      - in: query
+        name: data_inicio
+        schema:
+          type: string
+          format: date
+        description: Start date (YYYY-MM-DD). Defaults to first day of current month.
+      - in: query
+        name: repasse_status
+        schema:
+          type: string
+        description: Pass "ALL" to include payments that already have a repasse. Omit
+          to return only payments without a repasse.
       tags:
       - pagamento
       security:
@@ -336,6 +360,26 @@ paths:
   /api/pagamento/relatorio/recolhimento:
     get:
       operationId: pagamento_relatorio_recolhimento_retrieve
+      parameters:
+      - in: query
+        name: advogado_id
+        schema:
+          type: integer
+        description: Filter by advogado ID.
+      - in: query
+        name: data_fim
+        schema:
+          type: string
+          format: date
+        description: Filter by data_vencimento ≤ this date (YYYY-MM-DD). Omit to return
+          all dates.
+      - in: query
+        name: data_inicio
+        schema:
+          type: string
+          format: date
+        description: Filter by data_vencimento ≥ this date (YYYY-MM-DD). Omit to return
+          all dates.
       tags:
       - pagamento
       security:

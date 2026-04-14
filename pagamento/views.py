@@ -2,6 +2,7 @@ from django.db.models import Prefetch, Q
 from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
 from django_filters.rest_framework import DjangoFilterBackend
+from drf_spectacular.openapi import OpenApiParameter
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.generics import (
@@ -205,7 +206,47 @@ class ReceitaRelatorioAPIView(GenericAPIView):
     permission_classes = [IsSuperUser]
     serializer_class = RelatorioReceitaSerializer
 
-    @extend_schema(responses=RelatorioReceitaSerializer)
+    @extend_schema(
+        responses=RelatorioReceitaSerializer,
+        parameters=[
+            OpenApiParameter(
+                name="data_inicio",
+                type={"type": "string", "format": "date"},
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description=(
+                    "Start date (YYYY-MM-DD). "
+                    "Defaults to first day of current month."
+                ),
+            ),
+            OpenApiParameter(
+                name="data_fim",
+                type={"type": "string", "format": "date"},
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description=(
+                    "End date (YYYY-MM-DD). " "Defaults to last day of current month."
+                ),
+            ),
+            OpenApiParameter(
+                name="advogado_id",
+                type={"type": "integer"},
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description="Filter events by advogado ID.",
+            ),
+            OpenApiParameter(
+                name="repasse_status",
+                type={"type": "string"},
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description=(
+                    'Pass "ALL" to include payments that already have a repasse. '
+                    "Omit to return only payments without a repasse."
+                ),
+            ),
+        ],
+    )
     def get(self, request):
         base_qs = PagamentoEvento.objects.select_related(
             "pagamento__processo__advogado",
@@ -224,7 +265,38 @@ class RecolhimentoRelatorioAPIView(GenericAPIView):
     permission_classes = [IsSuperUser]
     serializer_class = RelatorioRecolhimentoSerializer
 
-    @extend_schema(responses=RelatorioRecolhimentoSerializer)
+    @extend_schema(
+        responses=RelatorioRecolhimentoSerializer,
+        parameters=[
+            OpenApiParameter(
+                name="advogado_id",
+                type={"type": "integer"},
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description="Filter by advogado ID.",
+            ),
+            OpenApiParameter(
+                name="data_inicio",
+                type={"type": "string", "format": "date"},
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description=(
+                    "Filter by data_vencimento ≥ this date (YYYY-MM-DD). "
+                    "Omit to return all dates."
+                ),
+            ),
+            OpenApiParameter(
+                name="data_fim",
+                type={"type": "string", "format": "date"},
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description=(
+                    "Filter by data_vencimento ≤ this date (YYYY-MM-DD). "
+                    "Omit to return all dates."
+                ),
+            ),
+        ],
+    )
     def get(self, request):
         base_qs = Pagamento.objects.select_related(
             "processo__advogado",
