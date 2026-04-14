@@ -362,7 +362,12 @@ class RelatorioReceitaAPIViewTestCase(TestCase):
 
         self.client.force_authenticate(user=self.superuser)
         response = self.client.get(
-            self.url, {"data_inicio": "2025-01-01", "data_fim": "2025-01-31"}
+            self.url,
+            {
+                "data_inicio": "2025-01-01",
+                "data_fim": "2025-01-31",
+                "repasse_status": "ALL",
+            },
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -401,7 +406,12 @@ class RelatorioReceitaAPIViewTestCase(TestCase):
 
         self.client.force_authenticate(user=self.superuser)
         response = self.client.get(
-            self.url, {"data_inicio": "2025-01-01", "data_fim": "2025-01-31"}
+            self.url,
+            {
+                "data_inicio": "2025-01-01",
+                "data_fim": "2025-01-31",
+                "repasse_status": "ALL",
+            },
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -441,7 +451,12 @@ class RelatorioReceitaAPIViewTestCase(TestCase):
 
         self.client.force_authenticate(user=self.superuser)
         response = self.client.get(
-            self.url, {"data_inicio": "2025-01-01", "data_fim": "2025-01-31"}
+            self.url,
+            {
+                "data_inicio": "2025-01-01",
+                "data_fim": "2025-01-31",
+                "repasse_status": "ALL",
+            },
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -450,3 +465,136 @@ class RelatorioReceitaAPIViewTestCase(TestCase):
 
         cor_pag = response.data["corretores"][0]["processos"][0]["pagamentos"][0]
         self.assertEqual(cor_pag["repasse_status"], "PENDENTE")
+
+    def test_relatorio_receita_excludes_payments_with_repasse_by_default(self):
+        """By default, payments that have any Repasse are excluded from the report."""
+        processo = create_processo(advogado=self.advogado)
+        pagamento, _ = create_implantacao(processo, data_vencimento=date(2025, 1, 1))
+        create_evento(pagamento, Decimal("100.00"), date(2025, 1, 15))
+        Repasse.objects.create(
+            pagamento=pagamento,
+            tipo=TipoRepasse.ADVOGADO,
+            advogado=self.advogado,
+            valor_repassado=Decimal("9.00"),
+            valor_total=Decimal("30.00"),
+            comissao_porcentagem=Decimal("30.00"),
+            data_repasse=date(2025, 1, 20),
+        )
+
+        self.client.force_authenticate(user=self.superuser)
+        response = self.client.get(
+            self.url, {"data_inicio": "2025-01-01", "data_fim": "2025-01-31"}
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["advogados"], [])
+
+    def test_relatorio_receita_includes_pending_payments_by_default(self):
+        """By default, payments without any Repasse are included in the report."""
+        processo = create_processo(advogado=self.advogado)
+        pagamento, _ = create_implantacao(processo, data_vencimento=date(2025, 1, 1))
+        create_evento(pagamento, Decimal("100.00"), date(2025, 1, 15))
+
+        self.client.force_authenticate(user=self.superuser)
+        response = self.client.get(
+            self.url, {"data_inicio": "2025-01-01", "data_fim": "2025-01-31"}
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data["advogados"]), 1)
+
+    def test_relatorio_receita_includes_all_payments_with_repasse_status_all(self):
+        """repasse_status=ALL includes payments with and without repasse."""
+        processo = create_processo(advogado=self.advogado)
+        pagamento_repassado, _ = create_implantacao(
+            processo, data_vencimento=date(2025, 1, 1)
+        )
+        create_evento(pagamento_repassado, Decimal("100.00"), date(2025, 1, 15))
+        Repasse.objects.create(
+            pagamento=pagamento_repassado,
+            tipo=TipoRepasse.ADVOGADO,
+            advogado=self.advogado,
+            valor_repassado=Decimal("9.00"),
+            valor_total=Decimal("30.00"),
+            comissao_porcentagem=Decimal("30.00"),
+            data_repasse=date(2025, 1, 20),
+        )
+
+        processo2 = create_processo(advogado=self.advogado)
+        pagamento_pendente, _ = create_implantacao(
+            processo2, data_vencimento=date(2025, 1, 1)
+        )
+        create_evento(pagamento_pendente, Decimal("50.00"), date(2025, 1, 15))
+
+        self.client.force_authenticate(user=self.superuser)
+        response = self.client.get(
+            self.url,
+            {
+                "data_inicio": "2025-01-01",
+                "data_fim": "2025-01-31",
+                "repasse_status": "ALL",
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        advogado_entry = response.data["advogados"][0]
+        pagamento_ids = [
+            p["pagamento_id"]
+            for processo in advogado_entry["processos"]
+            for p in processo["pagamentos"]
+        ]
+        self.assertIn(pagamento_repassado.id, pagamento_ids)
+        self.assertIn(pagamento_pendente.id, pagamento_ids)
+
+    def test_relatorio_receita_repasse_status_all_is_case_insensitive(self):
+        """repasse_status=all (lowercase) bypasses the filter same as ALL."""
+        processo = create_processo(advogado=self.advogado)
+        pagamento, _ = create_implantacao(processo, data_vencimento=date(2025, 1, 1))
+        create_evento(pagamento, Decimal("100.00"), date(2025, 1, 15))
+        Repasse.objects.create(
+            pagamento=pagamento,
+            tipo=TipoRepasse.ADVOGADO,
+            advogado=self.advogado,
+            valor_repassado=Decimal("9.00"),
+            valor_total=Decimal("30.00"),
+            comissao_porcentagem=Decimal("30.00"),
+            data_repasse=date(2025, 1, 20),
+        )
+
+        self.client.force_authenticate(user=self.superuser)
+        for variant in ("all", "All", "aLl"):
+            with self.subTest(repasse_status=variant):
+                response = self.client.get(
+                    self.url,
+                    {
+                        "data_inicio": "2025-01-01",
+                        "data_fim": "2025-01-31",
+                        "repasse_status": variant,
+                    },
+                )
+                self.assertEqual(response.status_code, status.HTTP_200_OK)
+                self.assertEqual(len(response.data["advogados"]), 1)
+
+    def test_relatorio_receita_repasse_status_empty_string_applies_default_filter(self):
+        """repasse_status='' (empty string) still applies the default exclusion."""
+        processo = create_processo(advogado=self.advogado)
+        pagamento, _ = create_implantacao(processo, data_vencimento=date(2025, 1, 1))
+        create_evento(pagamento, Decimal("100.00"), date(2025, 1, 15))
+        Repasse.objects.create(
+            pagamento=pagamento,
+            tipo=TipoRepasse.ADVOGADO,
+            advogado=self.advogado,
+            valor_repassado=Decimal("9.00"),
+            valor_total=Decimal("30.00"),
+            comissao_porcentagem=Decimal("30.00"),
+            data_repasse=date(2025, 1, 20),
+        )
+
+        self.client.force_authenticate(user=self.superuser)
+        response = self.client.get(
+            self.url,
+            {
+                "data_inicio": "2025-01-01",
+                "data_fim": "2025-01-31",
+                "repasse_status": "",
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["advogados"], [])

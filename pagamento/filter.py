@@ -2,12 +2,13 @@ import calendar
 from datetime import date
 
 import django_filters
-from django.db.models import Q
+from django.db.models import Exists, OuterRef, Q
 from django.utils import timezone
 
 from .models import (
     Pagamento,
     PagamentoEvento,
+    Repasse,
     TipoPagamento,
 )
 
@@ -66,10 +67,14 @@ class RelatorioReceitaFilter(django_filters.FilterSet):
     advogado_id = django_filters.NumberFilter(
         field_name="pagamento__processo__advogado_id"
     )
+    repasse_status = django_filters.CharFilter(method="filter_noop_repasse_status")
 
     class Meta:
         model = PagamentoEvento
-        fields = ["data_inicio", "data_fim", "advogado_id"]
+        fields = ["data_inicio", "data_fim", "advogado_id", "repasse_status"]
+
+    def filter_noop_repasse_status(self, queryset, name, value):
+        return queryset
 
     @property
     def data_inicio_effective(self):
@@ -94,4 +99,7 @@ class RelatorioReceitaFilter(django_filters.FilterSet):
             qs = qs.filter(data_pagamento__gte=self.data_inicio_effective)
         if not (self.is_bound and self.form.cleaned_data.get("data_fim")):
             qs = qs.filter(data_pagamento__lte=self.data_fim_effective)
+        if self.data.get("repasse_status", "").strip().upper() != "ALL":
+            has_repasse = Repasse.objects.filter(pagamento_id=OuterRef("pagamento_id"))
+            qs = qs.exclude(Exists(has_repasse))
         return qs
