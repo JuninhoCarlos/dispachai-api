@@ -322,6 +322,29 @@ paths:
   /api/pagamento/relatorio/receita:
     get:
       operationId: pagamento_relatorio_receita_retrieve
+      parameters:
+      - in: query
+        name: advogado_id
+        schema:
+          type: integer
+        description: Filter events by advogado ID.
+      - in: query
+        name: data_fim
+        schema:
+          type: string
+          format: date
+        description: 'End date (YYYY-MM-DD). Default: last day of month.'
+      - in: query
+        name: data_inicio
+        schema:
+          type: string
+          format: date
+        description: 'Start date (YYYY-MM-DD). Default: first day of month.'
+      - in: query
+        name: repasse_status
+        schema:
+          type: string
+        description: Pass "ALL" to include payments with an existing repasse.
       tags:
       - pagamento
       security:
@@ -332,6 +355,38 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RelatorioReceita'
+          description: ''
+  /api/pagamento/relatorio/recolhimento:
+    get:
+      operationId: pagamento_relatorio_recolhimento_retrieve
+      parameters:
+      - in: query
+        name: advogado_id
+        schema:
+          type: integer
+        description: Filter by advogado ID.
+      - in: query
+        name: data_fim
+        schema:
+          type: string
+          format: date
+        description: End of data_vencimento filter (YYYY-MM-DD).
+      - in: query
+        name: data_inicio
+        schema:
+          type: string
+          format: date
+        description: Start of data_vencimento filter (YYYY-MM-DD).
+      tags:
+      - pagamento
+      security:
+      - knoxApiToken: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RelatorioRecolhimento'
           description: ''
   /api/pessoas/advogado:
     get:
@@ -870,6 +925,114 @@ components:
       required:
       - id
       - pagamentos
+    RecolhimentoAdvogado:
+      type: object
+      properties:
+        id:
+          type: integer
+        nome:
+          type: string
+        total_recolhimento:
+          type: number
+          format: double
+          maximum: 10000000000
+          minimum: -10000000000
+          exclusiveMaximum: true
+          exclusiveMinimum: true
+        pagamentos:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecolhimentoPagamentoItem'
+      required:
+      - id
+      - nome
+      - pagamentos
+      - total_recolhimento
+    RecolhimentoPagamentoItem:
+      type: object
+      properties:
+        pagamento_id:
+          type: integer
+        cliente:
+          type: string
+          nullable: true
+        tipo:
+          type: string
+        status:
+          type: string
+        valor_pendente:
+          type: number
+          format: double
+          maximum: 10000000000
+          minimum: -10000000000
+          exclusiveMaximum: true
+          exclusiveMinimum: true
+        comissao_advogado_porcentagem:
+          type: number
+          format: double
+          maximum: 1000
+          minimum: -1000
+          exclusiveMaximum: true
+          exclusiveMinimum: true
+        comissao_advogado_valor:
+          type: number
+          format: double
+          maximum: 10000000000
+          minimum: -10000000000
+          exclusiveMaximum: true
+          exclusiveMinimum: true
+        valor_escritorio:
+          type: number
+          format: double
+          maximum: 10000000000
+          minimum: -10000000000
+          exclusiveMaximum: true
+          exclusiveMinimum: true
+        corretor_nome:
+          type: string
+          nullable: true
+        comissao_corretor_porcentagem:
+          type: number
+          format: double
+          maximum: 1000
+          minimum: -1000
+          exclusiveMaximum: true
+          exclusiveMinimum: true
+          nullable: true
+        comissao_corretor_valor:
+          type: number
+          format: double
+          maximum: 10000000000
+          minimum: -10000000000
+          exclusiveMaximum: true
+          exclusiveMinimum: true
+          nullable: true
+      required:
+      - cliente
+      - comissao_advogado_porcentagem
+      - comissao_advogado_valor
+      - comissao_corretor_porcentagem
+      - comissao_corretor_valor
+      - corretor_nome
+      - pagamento_id
+      - status
+      - tipo
+      - valor_escritorio
+      - valor_pendente
+    RecolhimentoPeriodo:
+      type: object
+      properties:
+        inicio:
+          type: string
+          format: date
+          nullable: true
+        fim:
+          type: string
+          format: date
+          nullable: true
+      required:
+      - fim
+      - inicio
     RelatorioAdvogado:
       type: object
       properties:
@@ -1021,6 +1184,18 @@ components:
       - escritorio
       - periodo
       - total_receita
+    RelatorioRecolhimento:
+      type: object
+      properties:
+        periodo:
+          $ref: '#/components/schemas/RecolhimentoPeriodo'
+        advogados:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecolhimentoAdvogado'
+      required:
+      - advogados
+      - periodo
     RepasseInput:
       type: object
       properties:

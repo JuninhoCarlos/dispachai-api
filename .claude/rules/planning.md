@@ -54,7 +54,8 @@ The design summary must include:
 ### Endpoint Spec
 - HTTP method and URL pattern (e.g. `POST /api/pagamento/implantacao/`)
 - Permission class (with justification if `AllowAny`)
-- Request body: each field with name, type, and required/optional
+- **Query params** (GET endpoints): each param with name, type, required/optional, default value, and accepted values. Required even when the list is empty — write "None" explicitly. Missing this section is a planning defect.
+- Request body (write endpoints): each field with name, type, and required/optional
 - Response: status code and response body shape
 
 ### Test Case List

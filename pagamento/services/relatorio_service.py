@@ -1,6 +1,8 @@
 from decimal import Decimal
 
-from ..models import Repasse, TipoPagamento
+from django.db.models import Sum
+
+from ..models import PagamentoEvento, Repasse, StatusPagamento, TipoPagamento
 
 
 def _add_pagamento_to_processo(
@@ -208,4 +210,119 @@ def build_relatorio(eventos, data_inicio, data_fim):
         "escritorio": {"total_comissao": total_escritorio},
         "advogados": list(advogado_map.values()),
         "corretores": list(corretor_map.values()),
+    }
+
+
+def build_recolhimento(pagamentos, data_inicio, data_fim):
+    pagamento_list = list(pagamentos)
+
+    parcialmente_pago_ids = [
+        pagamento.id
+        for pagamento in pagamento_list
+        if (
+            pagamento.tipo == TipoPagamento.IMPLANTACAO
+            and pagamento.implantacao.status == StatusPagamento.PARCIALMENTE_PAGO
+        )
+        or (
+            pagamento.tipo in [TipoPagamento.PARCELA, TipoPagamento.ENTRADA]
+            and pagamento.parcela.status == StatusPagamento.PARCIALMENTE_PAGO
+        )
+    ]
+
+    recebidos_por_pagamento = {}
+    if parcialmente_pago_ids:
+        agregados = (
+            PagamentoEvento.objects.filter(pagamento_id__in=parcialmente_pago_ids)
+            .values("pagamento_id")
+            .annotate(total=Sum("valor_recebido"))
+        )
+        for agregado in agregados:
+            recebidos_por_pagamento[agregado["pagamento_id"]] = agregado["total"]
+
+    advogado_map = {}
+
+    for pagamento in pagamento_list:
+        processo = pagamento.processo
+        advogado = processo.advogado
+        corretor = processo.corretor
+
+        advogado_porcentagem = _resolve_porcentagem(
+            processo.comissao_ajustada_advogado, advogado.comissao_padrao
+        )
+
+        corretor_porcentagem = None
+        corretor_porcentagem_valor = Decimal("0.00")
+        if corretor:
+            corretor_porcentagem = _resolve_porcentagem(
+                processo.comissao_ajustada_corretor, corretor.comissao_padrao
+            )
+            corretor_porcentagem_valor = corretor_porcentagem
+
+        if pagamento.tipo == TipoPagamento.IMPLANTACAO:
+            implantacao = pagamento.implantacao
+            valor_base = implantacao.valor_total
+            valor_ja_recebido = recebidos_por_pagamento.get(
+                pagamento.id, Decimal("0.00")
+            )
+            valor_pendente = valor_base - valor_ja_recebido
+            status_pagamento = implantacao.status
+
+            (
+                _escritorio_base,
+                corretor_valor,
+                _restante,
+                advogado_valor,
+                escritorio_liquido,
+            ) = _calcular_implantacao(
+                valor_pendente,
+                implantacao.porcentagem_escritorio,
+                advogado_porcentagem,
+                corretor_porcentagem_valor,
+            )
+
+        else:  # CONTRATO_PARCELA or CONTRATO_ENTRADA
+            parcela = pagamento.parcela
+            valor_base = parcela.valor_parcela
+            valor_ja_recebido = recebidos_por_pagamento.get(
+                pagamento.id, Decimal("0.00")
+            )
+            valor_pendente = valor_base - valor_ja_recebido
+            status_pagamento = parcela.status
+
+            corretor_valor, _restante, advogado_valor, escritorio_liquido = (
+                _calcular_contrato(
+                    valor_pendente,
+                    advogado_porcentagem,
+                    corretor_porcentagem_valor,
+                )
+            )
+
+        if advogado.id not in advogado_map:
+            advogado_map[advogado.id] = {
+                "id": advogado.id,
+                "nome": advogado.nome,
+                "total_recolhimento": Decimal("0.00"),
+                "pagamentos": [],
+            }
+
+        advogado_map[advogado.id]["total_recolhimento"] += escritorio_liquido
+        advogado_map[advogado.id]["pagamentos"].append(
+            {
+                "pagamento_id": pagamento.id,
+                "cliente": processo.cliente.nome if processo.cliente else None,
+                "tipo": pagamento.tipo,
+                "status": status_pagamento,
+                "valor_pendente": valor_pendente,
+                "comissao_advogado_porcentagem": advogado_porcentagem,
+                "comissao_advogado_valor": advogado_valor,
+                "valor_escritorio": escritorio_liquido,
+                "corretor_nome": corretor.nome if corretor else None,
+                "comissao_corretor_porcentagem": corretor_porcentagem,
+                "comissao_corretor_valor": corretor_valor if corretor else None,
+            }
+        )
+
+    return {
+        "periodo": {"inicio": data_inicio, "fim": data_fim},
+        "advogados": list(advogado_map.values()),
     }

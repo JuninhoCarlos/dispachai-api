@@ -9,6 +9,7 @@ from .views import (
     ProcessoListCreateAPIView,
     ProcessoPendentesAPIView,
     ReceitaRelatorioAPIView,
+    RecolhimentoRelatorioAPIView,
     RepassarView,
 )
 
@@ -53,5 +54,10 @@ urlpatterns = [
         "pagamento/relatorio/receita",
         ReceitaRelatorioAPIView.as_view(),
         name="relatorio_receita",
+    ),
+    path(
+        "pagamento/relatorio/recolhimento",
+        RecolhimentoRelatorioAPIView.as_view(),
+        name="relatorio_recolhimento",
     ),
 ]

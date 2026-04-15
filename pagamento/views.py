@@ -2,6 +2,7 @@ from django.db.models import Prefetch, Q
 from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
 from django_filters.rest_framework import DjangoFilterBackend
+from drf_spectacular.openapi import OpenApiParameter
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.generics import (
@@ -14,7 +15,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from identity.permissions import IsSuperUser
-from pagamento.filter import PagamentoMonthYearFilter, RelatorioReceitaFilter
+from pagamento.filter import (
+    PagamentoMonthYearFilter,
+    RelatorioReceitaFilter,
+    RelatorioRecolhimentoFilter,
+)
 
 from .models import (
     Pagamento,
@@ -29,6 +34,7 @@ from .serializers.read import (
     PendentesSerializer,
     ProcessoDetailSerializer,
     RelatorioReceitaSerializer,
+    RelatorioRecolhimentoSerializer,
     RepasseReadSerializer,
 )
 from .serializers.write import (
@@ -39,7 +45,7 @@ from .serializers.write import (
     RepasseInputSerializer,
 )
 from .services.pagamento_service import PagamentoService
-from .services.relatorio_service import build_relatorio
+from .services.relatorio_service import build_recolhimento, build_relatorio
 from .services.repasse_service import RepasseService
 
 
@@ -200,7 +206,39 @@ class ReceitaRelatorioAPIView(GenericAPIView):
     permission_classes = [IsSuperUser]
     serializer_class = RelatorioReceitaSerializer
 
-    @extend_schema(responses=RelatorioReceitaSerializer)
+    @extend_schema(
+        responses=RelatorioReceitaSerializer,
+        parameters=[
+            OpenApiParameter(
+                name="data_inicio",
+                type={"type": "string", "format": "date"},
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description="Start date (YYYY-MM-DD). Default: first day of month.",
+            ),
+            OpenApiParameter(
+                name="data_fim",
+                type={"type": "string", "format": "date"},
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description="End date (YYYY-MM-DD). Default: last day of month.",
+            ),
+            OpenApiParameter(
+                name="advogado_id",
+                type={"type": "integer"},
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description="Filter events by advogado ID.",
+            ),
+            OpenApiParameter(
+                name="repasse_status",
+                type={"type": "string"},
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description='Pass "ALL" to include payments with an existing repasse.',
+            ),
+        ],
+    )
     def get(self, request):
         base_qs = PagamentoEvento.objects.select_related(
             "pagamento__processo__advogado",
@@ -212,4 +250,50 @@ class ReceitaRelatorioAPIView(GenericAPIView):
         f = RelatorioReceitaFilter(request.GET, queryset=base_qs)
         relatorio = build_relatorio(f.qs, f.data_inicio_effective, f.data_fim_effective)
         serializer = RelatorioReceitaSerializer(relatorio)
+        return Response(serializer.data)
+
+
+class RecolhimentoRelatorioAPIView(GenericAPIView):
+    permission_classes = [IsSuperUser]
+    serializer_class = RelatorioRecolhimentoSerializer
+
+    @extend_schema(
+        responses=RelatorioRecolhimentoSerializer,
+        parameters=[
+            OpenApiParameter(
+                name="advogado_id",
+                type={"type": "integer"},
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description="Filter by advogado ID.",
+            ),
+            OpenApiParameter(
+                name="data_inicio",
+                type={"type": "string", "format": "date"},
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description="Start of data_vencimento filter (YYYY-MM-DD).",
+            ),
+            OpenApiParameter(
+                name="data_fim",
+                type={"type": "string", "format": "date"},
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description="End of data_vencimento filter (YYYY-MM-DD).",
+            ),
+        ],
+    )
+    def get(self, request):
+        base_qs = Pagamento.objects.select_related(
+            "processo__advogado",
+            "processo__corretor",
+            "processo__cliente",
+            "implantacao",
+            "parcela",
+        )
+        f = RelatorioRecolhimentoFilter(request.GET, queryset=base_qs)
+        relatorio = build_recolhimento(
+            f.qs, f.data_inicio_effective, f.data_fim_effective
+        )
+        serializer = RelatorioRecolhimentoSerializer(relatorio)
         return Response(serializer.data)

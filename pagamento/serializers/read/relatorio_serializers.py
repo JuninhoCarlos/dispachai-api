@@ -59,3 +59,48 @@ class RelatorioReceitaSerializer(serializers.Serializer):
     escritorio = RelatorioEscritorioSerializer()
     advogados = RelatorioAdvogadoSerializer(many=True)
     corretores = RelatorioCorretorSerializer(many=True)
+
+
+class RecolhimentoPagamentoItemSerializer(serializers.Serializer):
+    pagamento_id = serializers.IntegerField()
+    cliente = serializers.CharField(allow_null=True)
+    tipo = serializers.CharField()
+    status = serializers.CharField()
+    valor_pendente = serializers.DecimalField(
+        max_digits=12, decimal_places=2, coerce_to_string=False
+    )
+    comissao_advogado_porcentagem = serializers.DecimalField(
+        max_digits=5, decimal_places=2, coerce_to_string=False
+    )
+    comissao_advogado_valor = serializers.DecimalField(
+        max_digits=12, decimal_places=2, coerce_to_string=False
+    )
+    valor_escritorio = serializers.DecimalField(
+        max_digits=12, decimal_places=2, coerce_to_string=False
+    )
+    corretor_nome = serializers.CharField(allow_null=True)
+    comissao_corretor_porcentagem = serializers.DecimalField(
+        max_digits=5, decimal_places=2, coerce_to_string=False, allow_null=True
+    )
+    comissao_corretor_valor = serializers.DecimalField(
+        max_digits=12, decimal_places=2, coerce_to_string=False, allow_null=True
+    )
+
+
+class RecolhimentoAdvogadoSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    nome = serializers.CharField()
+    total_recolhimento = serializers.DecimalField(
+        max_digits=12, decimal_places=2, coerce_to_string=False
+    )
+    pagamentos = RecolhimentoPagamentoItemSerializer(many=True)
+
+
+class RecolhimentoPeriodoSerializer(serializers.Serializer):
+    inicio = serializers.DateField(allow_null=True)
+    fim = serializers.DateField(allow_null=True)
+
+
+class RelatorioRecolhimentoSerializer(serializers.Serializer):
+    periodo = RecolhimentoPeriodoSerializer()
+    advogados = RecolhimentoAdvogadoSerializer(many=True)
