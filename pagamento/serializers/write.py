@@ -63,6 +63,14 @@ class PagamentoContratoSerializer(PagamentoBaseSerializer):
         max_digits=10, decimal_places=2, write_only=True
     )
 
+    parcela_final = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        write_only=True,
+        required=False,
+        help_text="Valor customizado da última parcela, criada como uma parcela extra.",
+    )
+
     class Meta:
         model = PagamentoContrato
         fields = [
@@ -73,6 +81,7 @@ class PagamentoContratoSerializer(PagamentoBaseSerializer):
             "numero_parcelas",
             "vencimento_entrada",
             "vencimento_parcela",
+            "parcela_final",
         ]
 
     def validate(self, data):
@@ -80,20 +89,29 @@ class PagamentoContratoSerializer(PagamentoBaseSerializer):
         Validações de alto nível envolvendo múltiplos campos.
         """
 
-        # 2. Validar: entrada + valor_parcela * numero_parcelas == valor_total
+        # 2. Validar: entrada + valor_parcela * numero_parcelas (+ parcela_final)
+        #    == valor_total
         valor_total = data.get("valor_total")
         entrada = data.get("entrada")
         valor_parcela = data.get("valor_parcela")
         numero_parcelas = data.get("numero_parcelas")
+        parcela_final = data.get("parcela_final")
+
+        if parcela_final is not None and parcela_final <= 0:
+            raise serializers.ValidationError(
+                {"parcela_final": "A parcela final deve ser maior que zero."}
+            )
 
         if all([valor_total, entrada, valor_parcela, numero_parcelas]):
             calculado = entrada + (valor_parcela * numero_parcelas)
+            if parcela_final is not None:
+                calculado += parcela_final
             if calculado != valor_total:
                 raise serializers.ValidationError(
                     {
                         "valor_total": (
                             "O valor_total deve ser igual a entrada + "
-                            "valor_parcela * numero_parcelas."
+                            "valor_parcela * numero_parcelas + parcela_final."
                         )
                     }
                 )
@@ -104,11 +122,12 @@ class PagamentoContratoSerializer(PagamentoBaseSerializer):
         vencimento_parcela = validated_data.get("vencimento_parcela")
         processo = validated_data.pop("processo")
         validated_data.pop("valor_total")
+        parcela_final = validated_data.pop("parcela_final", None)
 
         contrato = super().create(validated_data)
 
         self._create_entrada(contrato, processo)
-        self._create_parcelas(contrato, processo, vencimento_parcela)
+        self._create_parcelas(contrato, processo, vencimento_parcela, parcela_final)
 
         return contrato
 
@@ -127,7 +146,9 @@ class PagamentoContratoSerializer(PagamentoBaseSerializer):
             status=StatusPagamento.PLANEJADO,
         )
 
-    def _create_parcelas(self, contrato, processo, vencimento_parcela):
+    def _create_parcelas(
+        self, contrato, processo, vencimento_parcela, parcela_final=None
+    ):
         parcelas = []
 
         for i in range(contrato.numero_parcelas):
@@ -141,6 +162,24 @@ class PagamentoContratoSerializer(PagamentoBaseSerializer):
                     valor_parcela=contrato.valor_parcela,
                     numero_parcela=i + 1,
                     data_vencimento=vencimento_parcela + relativedelta(months=i),
+                    tipo=TipoParcela.PARCELA,
+                    status=StatusPagamento.PLANEJADO,
+                )
+            )
+
+        if parcela_final is not None:
+            numero_final = contrato.numero_parcelas + 1
+            pagamento = Pagamento.objects.create(
+                processo=processo, tipo=TipoPagamento.PARCELA
+            )
+            parcelas.append(
+                PagamentoParcela(
+                    pagamento=pagamento,
+                    contrato=contrato,
+                    valor_parcela=parcela_final,
+                    numero_parcela=numero_final,
+                    data_vencimento=vencimento_parcela
+                    + relativedelta(months=contrato.numero_parcelas),
                     tipo=TipoParcela.PARCELA,
                     status=StatusPagamento.PLANEJADO,
                 )

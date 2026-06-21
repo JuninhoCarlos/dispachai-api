@@ -634,6 +634,13 @@ components:
           format: date
           writeOnly: true
           description: Data de vencimento da primeira parcela.
+        parcela_final:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          writeOnly: true
+          description: Valor customizado da última parcela, criada como uma parcela
+            extra.
       required:
       - entrada
       - numero_parcelas
