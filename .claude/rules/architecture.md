@@ -212,6 +212,43 @@ the filtering logic. Document the reason inline.
 
 ---
 
+## Pagination
+
+**Every new listing endpoint must be paginated.** A "listing endpoint" is any endpoint
+that returns a collection of objects (a list/array of records). It must page that
+collection — never return the full unbounded result set.
+
+The project's global default is `LimitOffsetPagination` with `PAGE_SIZE = 25`
+(`api/settings.py`). The simplest way to comply is to **use a DRF generic list view**:
+
+- `ListAPIView` / `ListCreateAPIView` — pagination is applied automatically because
+  `ListModelMixin.list()` calls `paginate_queryset()`. The response is wrapped as
+  `{count, next, previous, results}` and clients may override with `?limit=&offset=`.
+  Prefer this for any new collection endpoint.
+
+**Custom `get()` methods do not paginate automatically.** A `GenericAPIView` with a
+hand-written `get()` that returns `Response(serializer.data)` directly bypasses
+pagination entirely. If a listing endpoint genuinely needs a custom `get()`, paginate
+explicitly:
+
+```python
+def get(self, request):
+    queryset = self.filter_queryset(self.get_queryset())
+    page = self.paginate_queryset(queryset)
+    serializer = self.get_serializer(page, many=True)
+    return self.get_paginated_response(serializer.data)
+```
+
+**Exception — aggregated report endpoints.** Endpoints that return a single computed
+report object (e.g. `relatorio/receita`, `relatorio/recolhimento`) are not collection
+listings and are not paginated. When you intentionally skip pagination, add an inline
+comment stating why (e.g. `# Aggregated report — single object, not a paginated list`).
+
+When adding a paginated endpoint, its tests must assert the paged envelope
+(`response.data["results"]`, `response.data["count"]`) rather than indexing the raw list.
+
+---
+
 ## Serializer File Layout
 
 Every app uses a `serializers/` package — never a flat `serializers.py` module.
