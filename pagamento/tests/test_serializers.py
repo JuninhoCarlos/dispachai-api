@@ -216,6 +216,97 @@ class PagamentoContratoSerializerTestCase(TestCase):
         self.assertEqual(numeros, list(range(1, 9)))
 
 
+class PagamentoContratoParcelaFinalSerializerTestCase(TestCase):
+    def setUp(self):
+        advogado = create_advogado()
+        cliente = create_cliente()
+        self.processo = create_processo(advogado=advogado, cliente=cliente)
+        # 5000 + 12×400 + 200 = 10000 ✓
+        self.valid_data = {
+            "processo": self.processo.id,
+            "valor_total": "10000.00",
+            "entrada": "5000.00",
+            "valor_parcela": "400.00",
+            "numero_parcelas": 12,
+            "vencimento_entrada": "2025-01-01",
+            "vencimento_parcela": "2025-02-01",
+            "parcela_final": "200.00",
+        }
+
+    def test_parcela_final_creates_13_parcelas(self):
+        serializer = PagamentoContratoSerializer(data=self.valid_data)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        serializer.save()
+        self.assertEqual(
+            PagamentoParcela.objects.filter(tipo=TipoParcela.PARCELA).count(), 13
+        )
+
+    def test_parcela_final_last_parcela_has_custom_value(self):
+        from decimal import Decimal
+
+        serializer = PagamentoContratoSerializer(data=self.valid_data)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        serializer.save()
+        ultima = (
+            PagamentoParcela.objects.filter(tipo=TipoParcela.PARCELA)
+            .order_by("numero_parcela")
+            .last()
+        )
+        self.assertEqual(ultima.numero_parcela, 13)
+        self.assertEqual(ultima.valor_parcela, Decimal("200.00"))
+
+    def test_parcela_final_last_parcela_has_correct_date(self):
+        serializer = PagamentoContratoSerializer(data=self.valid_data)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        serializer.save()
+        ultima = (
+            PagamentoParcela.objects.filter(tipo=TipoParcela.PARCELA)
+            .order_by("numero_parcela")
+            .last()
+        )
+        self.assertEqual(ultima.data_vencimento, date(2026, 2, 1))
+
+    def test_parcela_final_updates_contrato_numero_parcelas(self):
+        serializer = PagamentoContratoSerializer(data=self.valid_data)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        serializer.save()
+        contrato = PagamentoContrato.objects.get()
+        self.assertEqual(contrato.numero_parcelas, 13)
+
+    def test_parcela_final_valor_total_must_include_it(self):
+        # valor_total only covers entrada + regular parcelas, missing parcela_final
+        data = {
+            **self.valid_data,
+            "valor_total": "9800.00",  # 5000 + 12×400, excludes 200
+        }
+        serializer = PagamentoContratoSerializer(data=data)
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("valor_total", serializer.errors)
+
+    def test_parcela_final_zero_raises_validation_error(self):
+        data = {**self.valid_data, "parcela_final": "0.00"}
+        serializer = PagamentoContratoSerializer(data=data)
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("parcela_final", serializer.errors)
+
+    def test_without_parcela_final_existing_behavior_unchanged(self):
+        data = {
+            "processo": self.processo.id,
+            "valor_total": "1000.00",
+            "entrada": "200.00",
+            "valor_parcela": "100.00",
+            "numero_parcelas": 8,
+            "vencimento_entrada": "2025-01-01",
+            "vencimento_parcela": "2025-02-01",
+        }
+        serializer = PagamentoContratoSerializer(data=data)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        serializer.save()
+        self.assertEqual(
+            PagamentoParcela.objects.filter(tipo=TipoParcela.PARCELA).count(), 8
+        )
+
+
 class PagarSerializerTestCase(TestCase):
     def test_valid_data_passes(self):
         serializer = PagarSerializer(
