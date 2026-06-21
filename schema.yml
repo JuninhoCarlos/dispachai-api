@@ -587,6 +587,7 @@ components:
         email:
           type: string
           format: email
+          nullable: true
           maxLength: 254
         advogado:
           type: integer
@@ -600,7 +601,6 @@ components:
           maxLength: 255
       required:
       - advogado
-      - email
       - id
       - nome
     PagamentoContrato:
