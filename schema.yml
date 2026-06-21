@@ -1015,6 +1015,13 @@ components:
           exclusiveMaximum: true
           exclusiveMinimum: true
           nullable: true
+        data_vencimento:
+          type: string
+          format: date
+        numero_parcela:
+          type: integer
+        total_parcelas:
+          type: integer
       required:
       - cliente
       - comissao_advogado_porcentagem
@@ -1022,6 +1029,7 @@ components:
       - comissao_corretor_porcentagem
       - comissao_corretor_valor
       - corretor_nome
+      - data_vencimento
       - pagamento_id
       - status
       - tipo

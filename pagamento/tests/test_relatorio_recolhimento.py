@@ -330,6 +330,46 @@ class RelatorioRecolhimentoAPIViewTestCase(TestCase):
             response.data["advogados"][0]["total_recolhimento"], Decimal("315.00")
         )
 
+    def test_recolhimento_implantacao_omits_parcela_fields(self):
+        """IMPLANTACAO items expose data_vencimento but omit parcela fields."""
+        processo = create_processo(advogado=self.advogado)
+        create_implantacao(
+            processo,
+            status=StatusPagamento.PLANEJADO,
+            data_vencimento=date(2025, 1, 15),
+        )
+        self.client.force_authenticate(user=self.superuser)
+        response = self.client.get(
+            self.url, {"data_inicio": "2025-01-01", "data_fim": "2025-01-31"}
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        pagamento_data = response.data["advogados"][0]["pagamentos"][0]
+        self.assertEqual(pagamento_data["data_vencimento"], "2025-01-15")
+        self.assertNotIn("numero_parcela", pagamento_data)
+        self.assertNotIn("total_parcelas", pagamento_data)
+
+    def test_recolhimento_contrato_parcela_fields(self):
+        """CONTRATO_PARCELA items expose data_vencimento, numero_parcela and
+        total_parcelas (from the contrato)."""
+        processo = create_processo(advogado=self.advogado)
+        _pagamento, parcela = create_parcela(
+            processo,
+            status=StatusPagamento.PLANEJADO,
+            data_vencimento=date(2025, 1, 15),
+            numero_parcela=3,
+        )
+        parcela.contrato.numero_parcelas = 12
+        parcela.contrato.save()
+        self.client.force_authenticate(user=self.superuser)
+        response = self.client.get(
+            self.url, {"data_inicio": "2025-01-01", "data_fim": "2025-01-31"}
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        pagamento_data = response.data["advogados"][0]["pagamentos"][0]
+        self.assertEqual(pagamento_data["data_vencimento"], "2025-01-15")
+        self.assertEqual(pagamento_data["numero_parcela"], 3)
+        self.assertEqual(pagamento_data["total_parcelas"], 12)
+
     def test_recolhimento_no_date_filter_returns_all(self):
         """No date params → all PLANEJADO/PARCIALMENTE_PAGO pagamentos are returned,
         regardless of data_vencimento month or year."""
