@@ -129,6 +129,10 @@ class PagamentoContratoSerializer(PagamentoBaseSerializer):
         self._create_entrada(contrato, processo)
         self._create_parcelas(contrato, processo, vencimento_parcela, parcela_final)
 
+        if parcela_final is not None:
+            contrato.numero_parcelas += 1
+            contrato.save(update_fields=["numero_parcelas"])
+
         return contrato
 
     def _create_entrada(self, contrato, processo):

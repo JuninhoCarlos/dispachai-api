@@ -266,6 +266,13 @@ class PagamentoContratoParcelaFinalSerializerTestCase(TestCase):
         )
         self.assertEqual(ultima.data_vencimento, date(2026, 2, 1))
 
+    def test_parcela_final_updates_contrato_numero_parcelas(self):
+        serializer = PagamentoContratoSerializer(data=self.valid_data)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        serializer.save()
+        contrato = PagamentoContrato.objects.get()
+        self.assertEqual(contrato.numero_parcelas, 13)
+
     def test_parcela_final_valor_total_must_include_it(self):
         # valor_total only covers entrada + regular parcelas, missing parcela_final
         data = {
