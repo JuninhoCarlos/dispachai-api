@@ -151,6 +151,10 @@ class PagamentoContratoSerializer(PagamentoBaseSerializer):
 
 class PagamentoImplantacaoSerializer(PagamentoBaseSerializer):
     tipo = TipoPagamento.IMPLANTACAO
+    # Declared explicitly so it stays required — the model field has default=None,
+    # which would otherwise make ModelSerializer treat it as optional and let a
+    # null reach the DB (NOT NULL violation).
+    valor_beneficio = serializers.DecimalField(max_digits=10, decimal_places=2)
     porcentagem_escritorio = serializers.DecimalField(max_digits=5, decimal_places=2)
     data_vencimento = serializers.DateField()
     local_pagamento = serializers.CharField(max_length=255, required=False)

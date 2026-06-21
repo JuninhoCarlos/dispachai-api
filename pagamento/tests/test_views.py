@@ -157,6 +157,13 @@ class ImplantacaoCreateAPIViewTestCase(TestCase):
         response = self.client.post(self.url, data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_create_valor_beneficio_missing_returns_400(self):
+        self.client.force_authenticate(user=self.superuser)
+        data = {k: v for k, v in self.valid_data.items() if k != "valor_beneficio"}
+        response = self.client.post(self.url, data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("valor_beneficio", response.data)
+
     def test_create_porcentagem_invalid_returns_400(self):
         self.client.force_authenticate(user=self.superuser)
         data = {**self.valid_data, "porcentagem_escritorio": "150.00"}

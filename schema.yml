@@ -666,6 +666,7 @@ components:
       - data_vencimento
       - porcentagem_escritorio
       - processo
+      - valor_beneficio
     PagamentoReader:
       type: object
       properties:

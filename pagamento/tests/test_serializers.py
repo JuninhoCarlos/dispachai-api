@@ -133,6 +133,12 @@ class PagamentoImplantacaoSerializerTestCase(TestCase):
         self.assertFalse(serializer.is_valid())
         self.assertIn("valor_beneficio", serializer.errors)
 
+    def test_valor_beneficio_missing_raises_validation_error(self):
+        data = {k: v for k, v in self.valid_data.items() if k != "valor_beneficio"}
+        serializer = PagamentoImplantacaoSerializer(data=data)
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("valor_beneficio", serializer.errors)
+
     def test_porcentagem_above_100_raises_validation_error(self):
         data = {**self.valid_data, "porcentagem_escritorio": "101.00"}
         serializer = PagamentoImplantacaoSerializer(data=data)
