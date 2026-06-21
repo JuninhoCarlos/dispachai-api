@@ -69,3 +69,19 @@ class CorretorListCreateAPIViewTestCase(TestCase):
         data = {**self.valid_data, "comissao_padrao": "150.00"}
         response = self.client.post(self.url, data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_corretor_without_email_returns_201(self):
+        self.client.force_authenticate(user=self.superuser)
+        data = {k: v for k, v in self.valid_data.items() if k != "email"}
+        response = self.client.post(self.url, data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        corretor = Corretor.objects.first()
+        self.assertIsNone(corretor.email)
+
+    def test_create_multiple_corretores_without_email_returns_201(self):
+        self.client.force_authenticate(user=self.superuser)
+        data = {k: v for k, v in self.valid_data.items() if k != "email"}
+        self.client.post(self.url, {**data, "nome": "Corretor A"})
+        response = self.client.post(self.url, {**data, "nome": "Corretor B"})
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Corretor.objects.count(), 2)

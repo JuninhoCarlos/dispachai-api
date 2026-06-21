@@ -27,7 +27,7 @@ class Advogado(models.Model):
 
 class Corretor(models.Model):
     nome = models.CharField(max_length=255)
-    email = models.EmailField(unique=True)
+    email = models.EmailField(unique=True, blank=True, null=True)
     advogado = models.ForeignKey(
         Advogado, on_delete=models.CASCADE, related_name="corretores"
     )
