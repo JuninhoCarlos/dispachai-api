@@ -254,6 +254,7 @@ def build_recolhimento(pagamentos, data_inicio, data_fim):
             )
             corretor_porcentagem_valor = corretor_porcentagem
 
+        parcela_fields = {}
         if pagamento.tipo == TipoPagamento.IMPLANTACAO:
             implantacao = pagamento.implantacao
             valor_base = implantacao.valor_escritorio
@@ -262,6 +263,7 @@ def build_recolhimento(pagamentos, data_inicio, data_fim):
             )
             valor_pendente = valor_base - valor_ja_recebido
             status_pagamento = implantacao.status
+            data_vencimento = implantacao.data_vencimento
 
             (
                 _escritorio_base,
@@ -283,6 +285,11 @@ def build_recolhimento(pagamentos, data_inicio, data_fim):
             )
             valor_pendente = valor_base - valor_ja_recebido
             status_pagamento = parcela.status
+            data_vencimento = parcela.data_vencimento
+            parcela_fields = {
+                "numero_parcela": parcela.numero_parcela,
+                "total_parcelas": parcela.contrato.numero_parcelas,
+            }
 
             corretor_valor, _restante, advogado_valor, escritorio_liquido = (
                 _calcular_contrato(
@@ -308,12 +315,14 @@ def build_recolhimento(pagamentos, data_inicio, data_fim):
                 "tipo": pagamento.tipo,
                 "status": status_pagamento,
                 "valor_pendente": valor_pendente,
+                "data_vencimento": data_vencimento,
                 "comissao_advogado_porcentagem": advogado_porcentagem,
                 "comissao_advogado_valor": advogado_valor,
                 "valor_escritorio": escritorio_liquido,
                 "corretor_nome": corretor.nome if corretor else None,
                 "comissao_corretor_porcentagem": corretor_porcentagem,
                 "comissao_corretor_valor": corretor_valor if corretor else None,
+                **parcela_fields,
             }
         )
 

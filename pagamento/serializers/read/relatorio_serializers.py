@@ -85,6 +85,17 @@ class RecolhimentoPagamentoItemSerializer(serializers.Serializer):
     comissao_corretor_valor = serializers.DecimalField(
         max_digits=12, decimal_places=2, coerce_to_string=False, allow_null=True
     )
+    data_vencimento = serializers.DateField()
+    numero_parcela = serializers.IntegerField(required=False)
+    total_parcelas = serializers.IntegerField(required=False)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if "numero_parcela" not in instance:
+            data.pop("numero_parcela", None)
+        if "total_parcelas" not in instance:
+            data.pop("total_parcelas", None)
+        return data
 
 
 class RecolhimentoAdvogadoSerializer(serializers.Serializer):

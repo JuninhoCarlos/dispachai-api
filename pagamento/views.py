@@ -290,6 +290,7 @@ class RecolhimentoRelatorioAPIView(GenericAPIView):
             "processo__cliente",
             "implantacao",
             "parcela",
+            "parcela__contrato",
         )
         f = RelatorioRecolhimentoFilter(request.GET, queryset=base_qs)
         relatorio = build_recolhimento(
