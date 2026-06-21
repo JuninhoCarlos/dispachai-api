@@ -130,7 +130,7 @@ class ImplantacaoCreateAPIViewTestCase(TestCase):
         self.processo = create_processo(advogado=advogado, cliente=cliente)
         self.valid_data = {
             "processo": self.processo.id,
-            "valor_total": "1000.00",
+            "valor_beneficio": "1000.00",
             "porcentagem_escritorio": "30.00",
             "data_vencimento": "2025-06-01",
         }
@@ -151,9 +151,9 @@ class ImplantacaoCreateAPIViewTestCase(TestCase):
         self.assertEqual(Pagamento.objects.count(), 1)
         self.assertEqual(PagamentoImplantacao.objects.count(), 1)
 
-    def test_create_valor_total_zero_returns_400(self):
+    def test_create_valor_beneficio_zero_returns_400(self):
         self.client.force_authenticate(user=self.superuser)
-        data = {**self.valid_data, "valor_total": "0.00"}
+        data = {**self.valid_data, "valor_beneficio": "0.00"}
         response = self.client.post(self.url, data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
@@ -219,7 +219,8 @@ class PagarPagamentosGenericViewTestCase(TestCase):
         self.url = reverse(
             "pagamento_pagar", kwargs={"pagamento_id": self.pagamento.id}
         )
-        self.valid_data = {"valor_pago": "1000.00", "data_pagamento": "2025-01-01"}
+        # valor_beneficio=1000, porcentagem_escritorio=30% → office amount = 300
+        self.valid_data = {"valor_pago": "300.00", "data_pagamento": "2025-01-01"}
 
     def test_pagar_requires_superuser(self):
         self.client.force_authenticate(user=self.user)
@@ -241,7 +242,7 @@ class PagarPagamentosGenericViewTestCase(TestCase):
     def test_pagar_partial_payment_sets_parcialmente_pago(self):
         self.client.force_authenticate(user=self.superuser)
         self.client.post(
-            self.url, {"valor_pago": "500.00", "data_pagamento": "2025-01-01"}
+            self.url, {"valor_pago": "150.00", "data_pagamento": "2025-01-01"}
         )
         self.implantacao.refresh_from_db()
         self.assertEqual(self.implantacao.status, StatusPagamento.PARCIALMENTE_PAGO)
@@ -255,7 +256,7 @@ class PagarPagamentosGenericViewTestCase(TestCase):
     def test_pagar_overpayment_returns_400(self):
         self.client.force_authenticate(user=self.superuser)
         response = self.client.post(
-            self.url, {"valor_pago": "1100.00", "data_pagamento": "2025-01-01"}
+            self.url, {"valor_pago": "400.00", "data_pagamento": "2025-01-01"}
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
@@ -276,7 +277,7 @@ class PagarPagamentosGenericViewTestCase(TestCase):
         self.client.force_authenticate(user=self.superuser)
         response = self.client.post(
             self.url,
-            {"valor_pago": "400.00", "data_pagamento": "2025-01-01", "quitar": True},
+            {"valor_pago": "100.00", "data_pagamento": "2025-01-01", "quitar": True},
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["status"], "OK")
@@ -286,7 +287,7 @@ class PagarPagamentosGenericViewTestCase(TestCase):
     def test_pagar_without_quitar_partial_stays_parcialmente_pago(self):
         self.client.force_authenticate(user=self.superuser)
         response = self.client.post(
-            self.url, {"valor_pago": "400.00", "data_pagamento": "2025-01-01"}
+            self.url, {"valor_pago": "100.00", "data_pagamento": "2025-01-01"}
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.implantacao.refresh_from_db()

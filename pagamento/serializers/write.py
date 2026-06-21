@@ -41,7 +41,7 @@ class PagamentoBaseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Pagamento
-        fields = ["processo", "valor_total"]
+        fields = ["processo"]
 
     def create_pagamento(self, validated_data, tipo=None):
         processo = validated_data.pop("processo")
@@ -159,18 +159,18 @@ class PagamentoImplantacaoSerializer(PagamentoBaseSerializer):
         model = PagamentoImplantacao
         fields = [
             "processo",
-            "valor_total",
+            "valor_beneficio",
             "porcentagem_escritorio",
             "data_vencimento",
             "local_pagamento",
         ]
 
     def validate(self, data):
-        # validar valor_total > 0
-        valor_total = data.get("valor_total")
-        if valor_total is not None and valor_total <= 0:
+        # validar valor_beneficio > 0
+        valor_beneficio = data.get("valor_beneficio")
+        if valor_beneficio is not None and valor_beneficio <= 0:
             raise serializers.ValidationError(
-                {"valor_total": "O valor total deve ser maior que zero."}
+                {"valor_beneficio": "O valor do benefício deve ser maior que zero."}
             )
 
         # validar porcentagem_escritorio entre 0 e 100

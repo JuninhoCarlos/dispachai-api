@@ -54,12 +54,16 @@ class StatusMixin:
 
 class PagamentoImplantacaoReaderSerializer(StatusMixin, serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
+    valor_escritorio = serializers.DecimalField(
+        max_digits=10, decimal_places=2, read_only=True
+    )
 
     class Meta:
         model = PagamentoImplantacao
         fields = [
             "pagamento",
-            "valor_total",
+            "valor_beneficio",
+            "valor_escritorio",
             "data_vencimento",
             "status",
             "local_pagamento",
@@ -193,8 +197,8 @@ class PendentesSerializer(serializers.ModelSerializer):
         if obj.tipo == TipoPagamento.IMPLANTACAO:
             if subtype.status == StatusPagamento.PARCIALMENTE_PAGO:
                 total_pago = PagamentoEventoService.calcular_total_pago(obj)
-                return subtype.valor_total - Decimal(str(total_pago))
-            return subtype.valor_total
+                return subtype.valor_escritorio - Decimal(str(total_pago))
+            return subtype.valor_escritorio
         else:
             if subtype.status == StatusPagamento.PARCIALMENTE_PAGO:
                 total_pago = PagamentoEventoService.calcular_total_pago(obj)

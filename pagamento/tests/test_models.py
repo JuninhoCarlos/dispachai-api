@@ -48,13 +48,41 @@ class ProcessoModelTestCase(TestCase):
         pagamentos = list(self.processo.get_pagamentos_implantacoes())
         with self.assertNumQueries(0):
             for p in pagamentos:
-                _ = p.implantacao.valor_total
+                _ = p.implantacao.valor_beneficio
 
     def test_get_pagamentos_parcelas_select_related_avoids_n_plus_1(self):
         pagamentos = list(self.processo.get_pagamentos_parcelas())
         with self.assertNumQueries(0):
             for p in pagamentos:
                 _ = p.parcela.valor_parcela
+
+
+class PagamentoImplantacaoValorEscritorioTestCase(TestCase):
+    def setUp(self):
+        advogado = create_advogado()
+        cliente = create_cliente()
+        self.processo = create_processo(advogado=advogado, cliente=cliente)
+
+    def test_valor_escritorio_derives_office_amount_from_beneficio(self):
+        from decimal import Decimal
+
+        _, implantacao = create_implantacao(
+            self.processo,
+            valor_beneficio=Decimal("1000.00"),
+            porcentagem_escritorio=Decimal("30.00"),
+        )
+        self.assertEqual(implantacao.valor_escritorio, Decimal("300.00"))
+
+    def test_valor_escritorio_is_quantized_to_two_decimals(self):
+        from decimal import Decimal
+
+        _, implantacao = create_implantacao(
+            self.processo,
+            valor_beneficio=Decimal("100.00"),
+            porcentagem_escritorio=Decimal("33.33"),
+        )
+        # 100 × 33.33% = 33.33
+        self.assertEqual(implantacao.valor_escritorio, Decimal("33.33"))
 
 
 class PagamentoDetalhesPropertyTestCase(TestCase):

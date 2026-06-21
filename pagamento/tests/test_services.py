@@ -98,10 +98,11 @@ class PagamentoServiceValidacaoTestCase(TestCase):
         self.assertIn("status", ctx.exception.detail)
 
     def test_validar_raises_if_overpayment_implantacao(self):
-        # historico=800 + valor_pago=300 = 1100 > valor_total=1000
+        # office amount = 1000 × 30% = 300
+        # historico=200 + valor_pago=200 = 400 > valor_escritorio=300
         with self.assertRaises(ValidationError) as ctx:
             PagamentoService._validar_pagamento(
-                self.implantacao, Decimal("300.00"), Decimal("800.00")
+                self.implantacao, Decimal("200.00"), Decimal("200.00")
             )
         self.assertIn("erro", ctx.exception.detail)
 
@@ -114,23 +115,23 @@ class PagamentoServiceValidacaoTestCase(TestCase):
         self.assertIn("erro", ctx.exception.detail)
 
     def test_validar_passes_exact_payment(self):
-        # historico=0 + valor_pago=1000 == valor_total=1000 — no exception
+        # historico=0 + valor_pago=300 == valor_escritorio=300 — no exception
         PagamentoService._validar_pagamento(
-            self.implantacao, Decimal("1000.00"), Decimal("0.00")
+            self.implantacao, Decimal("300.00"), Decimal("0.00")
         )
 
     def test_validar_passes_partial_payment(self):
-        # historico=0 + valor_pago=500 < 1000 — no exception
+        # historico=0 + valor_pago=150 < 300 — no exception
         PagamentoService._validar_pagamento(
-            self.implantacao, Decimal("500.00"), Decimal("0.00")
+            self.implantacao, Decimal("150.00"), Decimal("0.00")
         )
 
     def test_pagar_implantacao_with_quitar_true_still_rejects_overpayment(self):
-        # quitar=True does NOT bypass the overpayment check
+        # quitar=True does NOT bypass the overpayment check (ceiling = 300)
         with self.assertRaises(ValidationError) as ctx:
             PagamentoService._validar_pagamento(
                 self.implantacao,
-                Decimal("1100.00"),
+                Decimal("400.00"),
                 Decimal("0.00"),
                 quitar=True,
             )
@@ -145,24 +146,25 @@ class PagamentoServicePagarImplantacaoTestCase(TestCase):
         self.pagamento, self.implantacao = create_implantacao(processo)
 
     def test_full_payment_sets_status_pago(self):
-        PagamentoService.pagar(self.pagamento, Decimal("1000.00"), date(2025, 1, 1))
+        # office amount = 1000 × 30% = 300
+        PagamentoService.pagar(self.pagamento, Decimal("300.00"), date(2025, 1, 1))
         self.implantacao.refresh_from_db()
         self.assertEqual(self.implantacao.status, StatusPagamento.PAGO)
 
     def test_partial_payment_sets_status_parcialmente_pago(self):
-        PagamentoService.pagar(self.pagamento, Decimal("500.00"), date(2025, 1, 1))
+        PagamentoService.pagar(self.pagamento, Decimal("150.00"), date(2025, 1, 1))
         self.implantacao.refresh_from_db()
         self.assertEqual(self.implantacao.status, StatusPagamento.PARCIALMENTE_PAGO)
 
     def test_payment_creates_evento(self):
-        PagamentoService.pagar(self.pagamento, Decimal("500.00"), date(2025, 1, 1))
+        PagamentoService.pagar(self.pagamento, Decimal("150.00"), date(2025, 1, 1))
         self.assertEqual(
             PagamentoEvento.objects.filter(pagamento=self.pagamento).count(), 1
         )
 
     def test_second_partial_completes_payment(self):
-        PagamentoService.pagar(self.pagamento, Decimal("600.00"), date(2025, 1, 1))
-        PagamentoService.pagar(self.pagamento, Decimal("400.00"), date(2025, 1, 2))
+        PagamentoService.pagar(self.pagamento, Decimal("180.00"), date(2025, 1, 1))
+        PagamentoService.pagar(self.pagamento, Decimal("120.00"), date(2025, 1, 2))
         self.implantacao.refresh_from_db()
         self.assertEqual(self.implantacao.status, StatusPagamento.PAGO)
         self.assertEqual(
@@ -170,7 +172,7 @@ class PagamentoServicePagarImplantacaoTestCase(TestCase):
         )
 
     def test_raises_if_already_pago(self):
-        PagamentoService.pagar(self.pagamento, Decimal("1000.00"), date(2025, 1, 1))
+        PagamentoService.pagar(self.pagamento, Decimal("300.00"), date(2025, 1, 1))
         with self.assertRaises(ValidationError):
             PagamentoService.pagar(self.pagamento, Decimal("100.00"), date(2025, 1, 2))
 
@@ -180,13 +182,13 @@ class PagamentoServicePagarImplantacaoTestCase(TestCase):
         ):
             with self.assertRaises(Exception):
                 PagamentoService.pagar(
-                    self.pagamento, Decimal("500.00"), date(2025, 1, 1)
+                    self.pagamento, Decimal("150.00"), date(2025, 1, 1)
                 )
         self.assertEqual(PagamentoEvento.objects.count(), 0)
 
     def test_pagar_implantacao_with_quitar_partial_sets_pago(self):
         PagamentoService.pagar(
-            self.pagamento, Decimal("400.00"), date(2025, 1, 1), quitar=True
+            self.pagamento, Decimal("100.00"), date(2025, 1, 1), quitar=True
         )
         self.implantacao.refresh_from_db()
         self.assertEqual(self.implantacao.status, StatusPagamento.PAGO)

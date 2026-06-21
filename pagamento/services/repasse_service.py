@@ -61,10 +61,9 @@ class RepasseService:
             )
 
         if pagamento.tipo == TipoPagamento.IMPLANTACAO:
-            porcentagem_escritorio = pagamento.implantacao.porcentagem_escritorio
+            # valor_total is the aggregated event sum — already the office amount.
             _, corretor_valor, _, advogado_valor, _ = _calcular_implantacao(
                 valor_total,
-                porcentagem_escritorio,
                 advogado_porcentagem,
                 corretor_porcentagem,
             )
