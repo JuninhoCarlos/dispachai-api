@@ -48,7 +48,8 @@ class PagamentoService:
     ):
         status = (
             StatusPagamento.PAGO
-            if quitar or valor_pago + historico_pagamento == implantacao.valor_total
+            if quitar
+            or valor_pago + historico_pagamento == implantacao.valor_escritorio
             else StatusPagamento.PARCIALMENTE_PAGO
         )
 
@@ -98,7 +99,7 @@ class PagamentoService:
             raise ValidationError({"status": "Este pagamento já foi pago."})
 
         valor_divida = (
-            pagamento.valor_total
+            pagamento.valor_escritorio
             if isinstance(pagamento, PagamentoImplantacao)
             else pagamento.valor_parcela
         )

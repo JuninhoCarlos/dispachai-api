@@ -108,7 +108,7 @@ class PagamentoImplantacaoSerializerTestCase(TestCase):
         self.processo = create_processo(advogado=advogado, cliente=cliente)
         self.valid_data = {
             "processo": self.processo.id,
-            "valor_total": "1000.00",
+            "valor_beneficio": "1000.00",
             "porcentagem_escritorio": "30.00",
             "data_vencimento": "2025-06-01",
         }
@@ -121,17 +121,23 @@ class PagamentoImplantacaoSerializerTestCase(TestCase):
         self.assertEqual(Pagamento.objects.first().tipo, TipoPagamento.IMPLANTACAO)
         self.assertEqual(PagamentoImplantacao.objects.count(), 1)
 
-    def test_valor_total_zero_raises_validation_error(self):
-        data = {**self.valid_data, "valor_total": "0.00"}
+    def test_valor_beneficio_zero_raises_validation_error(self):
+        data = {**self.valid_data, "valor_beneficio": "0.00"}
         serializer = PagamentoImplantacaoSerializer(data=data)
         self.assertFalse(serializer.is_valid())
-        self.assertIn("valor_total", serializer.errors)
+        self.assertIn("valor_beneficio", serializer.errors)
 
-    def test_valor_total_negative_raises_validation_error(self):
-        data = {**self.valid_data, "valor_total": "-100.00"}
+    def test_valor_beneficio_negative_raises_validation_error(self):
+        data = {**self.valid_data, "valor_beneficio": "-100.00"}
         serializer = PagamentoImplantacaoSerializer(data=data)
         self.assertFalse(serializer.is_valid())
-        self.assertIn("valor_total", serializer.errors)
+        self.assertIn("valor_beneficio", serializer.errors)
+
+    def test_valor_beneficio_missing_raises_validation_error(self):
+        data = {k: v for k, v in self.valid_data.items() if k != "valor_beneficio"}
+        serializer = PagamentoImplantacaoSerializer(data=data)
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("valor_beneficio", serializer.errors)
 
     def test_porcentagem_above_100_raises_validation_error(self):
         data = {**self.valid_data, "porcentagem_escritorio": "101.00"}

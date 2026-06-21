@@ -68,16 +68,17 @@ class RelatorioReceitaAPIViewTestCase(TestCase):
         self.assertEqual(response.data["advogados"], [])
         self.assertEqual(response.data["corretores"], [])
 
-    def test_relatorio_receita_implantacao_uses_porcentagem_escritorio(self):
-        """receita for IMPLANTACAO = valor_recebido × (porcentagem_escritorio / 100)."""
+    def test_relatorio_receita_implantacao_uses_event_as_escritorio_base(self):
+        """receita for IMPLANTACAO = valor_recebido (already the office amount)."""
         processo = create_processo(advogado=self.advogado)
         pagamento, _ = create_implantacao(
             processo,
-            valor_total=Decimal("1000.00"),
+            valor_beneficio=Decimal("1000.00"),
             porcentagem_escritorio=Decimal("50.00"),
             data_vencimento=date(2025, 1, 1),
         )
-        create_evento(pagamento, Decimal("500.00"), date(2025, 1, 15))
+        # event records the office amount directly (escritorio_base)
+        create_evento(pagamento, Decimal("250.00"), date(2025, 1, 15))
 
         self.client.force_authenticate(user=self.superuser)
         response = self.client.get(
@@ -86,7 +87,7 @@ class RelatorioReceitaAPIViewTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         pagamento_entry = response.data["advogados"][0]["processos"][0]["pagamentos"][0]
-        # base = 500 × 0.50 = 250
+        # base = event = 250 (no porcentagem multiply)
         self.assertEqual(pagamento_entry["receita"], Decimal("250.00"))
         self.assertEqual(pagamento_entry["pagamento_id"], pagamento.id)
         self.assertEqual(pagamento_entry["tipo"], "IMPLANTACAO")
@@ -119,7 +120,7 @@ class RelatorioReceitaAPIViewTestCase(TestCase):
         )
         pagamento, _ = create_implantacao(
             processo,
-            valor_total=Decimal("1000.00"),
+            valor_beneficio=Decimal("1000.00"),
             porcentagem_escritorio=Decimal("40.00"),
             data_vencimento=date(2025, 1, 1),
         )
@@ -161,7 +162,7 @@ class RelatorioReceitaAPIViewTestCase(TestCase):
         Implantação rule: corretor cuts from escritorio_base first;
         advogado cuts from what remains.
 
-        escritorio_base = 500 × 50% = 250
+        escritorio_base = 250 (event = office amount, no porcentagem multiply)
         corretor        = 250 × 20% = 50   ← % of escritorio_base
         restante        = 250 - 50  = 200
         advogado        = 200 × 30% = 60
@@ -170,11 +171,12 @@ class RelatorioReceitaAPIViewTestCase(TestCase):
         processo = create_processo(advogado=self.advogado, corretor=self.corretor)
         pagamento, _ = create_implantacao(
             processo,
-            valor_total=Decimal("1000.00"),
+            valor_beneficio=Decimal("1000.00"),
             porcentagem_escritorio=Decimal("50.00"),
             data_vencimento=date(2025, 1, 1),
         )
-        create_evento(pagamento, Decimal("500.00"), date(2025, 1, 15))
+        # event records the office amount directly (escritorio_base)
+        create_evento(pagamento, Decimal("250.00"), date(2025, 1, 15))
 
         self.client.force_authenticate(user=self.superuser)
         response = self.client.get(
@@ -304,8 +306,8 @@ class RelatorioReceitaAPIViewTestCase(TestCase):
             porcentagem_escritorio=Decimal("30.00"),
             data_vencimento=date(2025, 1, 1),
         )
-        # Inside range
-        create_evento(pagamento, Decimal("100.00"), date(2025, 1, 15))
+        # Inside range — event is the office amount
+        create_evento(pagamento, Decimal("30.00"), date(2025, 1, 15))
         # Outside range — must be excluded
         create_evento(pagamento, Decimal("999.00"), date(2025, 2, 1))
 
@@ -315,7 +317,7 @@ class RelatorioReceitaAPIViewTestCase(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-        # Only the 100 event counted: base = 100 × 0.30 = 30
+        # Only the in-range event counted: base = event = 30
         pag_entry = response.data["advogados"][0]["processos"][0]["pagamentos"][0]
         self.assertEqual(pag_entry["receita"], Decimal("30.00"))
 

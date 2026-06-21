@@ -37,12 +37,11 @@ def _resolve_porcentagem(ajustada, padrao):
     return ajustada if ajustada is not None else padrao
 
 
-def _calcular_implantacao(
-    total_recebido, porcentagem_escritorio, advogado_porcentagem, corretor_porcentagem
-):
+def _calcular_implantacao(total_recebido, advogado_porcentagem, corretor_porcentagem):
     """
-    Implantação distribution:
-      escritorio_base = total_recebido × porcentagem_escritorio%
+    Implantação distribution. ``total_recebido`` is already the office amount
+    (escritorio_base) — the client only pays the office its slice.
+      escritorio_base = total_recebido
       corretor_valor  = escritorio_base × corretor%   (cuts from escritorio_base first)
       restante        = escritorio_base - corretor_valor
       advogado_valor  = restante × advogado%
@@ -50,7 +49,7 @@ def _calcular_implantacao(
     Returns (escritorio_base, corretor_valor, restante, advogado_valor,
     escritorio_liquido).
     """
-    escritorio_base = total_recebido * (porcentagem_escritorio / Decimal("100"))
+    escritorio_base = total_recebido
     corretor_valor = escritorio_base * (corretor_porcentagem / Decimal("100"))
     restante = escritorio_base - corretor_valor
     advogado_valor = restante * (advogado_porcentagem / Decimal("100"))
@@ -109,8 +108,6 @@ def build_relatorio(eventos, data_inicio, data_fim):
         )
 
         if pagamento.tipo == TipoPagamento.IMPLANTACAO:
-            porcentagem_escritorio = pagamento.implantacao.porcentagem_escritorio
-
             corretor_porcentagem = None
             corretor_porcentagem_valor = Decimal("0.00")
             if corretor:
@@ -127,7 +124,6 @@ def build_relatorio(eventos, data_inicio, data_fim):
                 escritorio_liquido,
             ) = _calcular_implantacao(
                 total_recebido,
-                porcentagem_escritorio,
                 advogado_porcentagem,
                 corretor_porcentagem_valor,
             )
@@ -260,7 +256,7 @@ def build_recolhimento(pagamentos, data_inicio, data_fim):
 
         if pagamento.tipo == TipoPagamento.IMPLANTACAO:
             implantacao = pagamento.implantacao
-            valor_base = implantacao.valor_total
+            valor_base = implantacao.valor_escritorio
             valor_ja_recebido = recebidos_por_pagamento.get(
                 pagamento.id, Decimal("0.00")
             )
@@ -275,7 +271,6 @@ def build_recolhimento(pagamentos, data_inicio, data_fim):
                 escritorio_liquido,
             ) = _calcular_implantacao(
                 valor_pendente,
-                implantacao.porcentagem_escritorio,
                 advogado_porcentagem,
                 corretor_porcentagem_valor,
             )

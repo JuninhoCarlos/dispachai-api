@@ -71,7 +71,7 @@ class ProcessoPendentesAPIViewTestCase(TestCase):
         self.assertEqual(item["tipo"], TipoPagamento.IMPLANTACAO)
         self.assertEqual(item["status"], StatusPagamento.ATRASADO)
         self.assertEqual(item["data_vencimento"], str(PAST_DATE))
-        self.assertEqual(Decimal(item["valor_pendente"]), implantacao.valor_total)
+        self.assertEqual(Decimal(item["valor_pendente"]), implantacao.valor_escritorio)
 
     def test_pendentes_returns_parcialmente_pago_implantacao(self):
         pagamento, implantacao = create_implantacao(
@@ -79,9 +79,10 @@ class ProcessoPendentesAPIViewTestCase(TestCase):
             data_vencimento=FUTURE_DATE,
             status=StatusPagamento.PARCIALMENTE_PAGO,
         )
+        # office amount = 1000 × 30% = 300; received 100 → pendente 200
         PagamentoEvento.objects.create(
             pagamento=pagamento,
-            valor_recebido=Decimal("300.00"),
+            valor_recebido=Decimal("100.00"),
             data_pagamento=date(2026, 1, 1),
         )
         self.client.force_authenticate(user=self.superuser)
@@ -90,7 +91,7 @@ class ProcessoPendentesAPIViewTestCase(TestCase):
         self.assertEqual(len(response.data), 1)
         item = response.data[0]
         self.assertEqual(item["status"], StatusPagamento.PARCIALMENTE_PAGO)
-        self.assertEqual(Decimal(item["valor_pendente"]), Decimal("700.00"))
+        self.assertEqual(Decimal(item["valor_pendente"]), Decimal("200.00"))
 
     def test_pendentes_returns_atrasado_contrato_parcela(self):
         pagamento, parcela = create_parcela(

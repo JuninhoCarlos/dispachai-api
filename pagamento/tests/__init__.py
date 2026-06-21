@@ -42,7 +42,7 @@ def create_implantacao(processo, **kwargs):
         processo=processo, tipo=TipoPagamento.IMPLANTACAO
     )
     defaults = {
-        "valor_total": Decimal("1000.00"),
+        "valor_beneficio": Decimal("1000.00"),
         "porcentagem_escritorio": Decimal("30.00"),
         "data_vencimento": date(2025, 6, 1),
         "status": StatusPagamento.PLANEJADO,

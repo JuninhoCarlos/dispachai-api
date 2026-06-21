@@ -93,16 +93,17 @@ class RepasseModelTestCase(TestCase):
 class RepasseServiceTestCase(TestCase):
     def setUp(self):
         # create_advogado default: comissao_padrao=30.00
-        # create_implantacao default: valor_total=1000.00, porcentagem_escritorio=30.00
+        # create_implantacao default: valor_beneficio=1000.00, pct_escritorio=30.00
         self.advogado = create_advogado()
         self.processo = create_processo(advogado=self.advogado)
         self.pagamento, _ = create_implantacao(self.processo)
+        # event records the office amount directly (escritorio_base)
         self.evento_abril = create_evento(
-            self.pagamento, Decimal("500.00"), date(2026, 4, 10)
+            self.pagamento, Decimal("150.00"), date(2026, 4, 10)
         )
 
     def test_repassar_advogado_implantacao_sem_corretor(self):
-        # escritorio_base = 500 × 30% = 150
+        # escritorio_base = event = 150
         # advogado_valor  = 150 × 30% = 45
         repasse = RepasseService.repassar(
             pagamento=self.pagamento,
@@ -115,7 +116,7 @@ class RepasseServiceTestCase(TestCase):
         self.assertEqual(repasse.advogado, self.advogado)
         self.assertIsNone(repasse.corretor)
         self.assertEqual(repasse.valor_repassado, Decimal("45.00"))
-        self.assertEqual(repasse.valor_total, Decimal("500.00"))
+        self.assertEqual(repasse.valor_total, Decimal("150.00"))
         self.assertEqual(repasse.comissao_porcentagem, Decimal("30.00"))
         self.assertIn(self.evento_abril, repasse.eventos.all())
 
@@ -123,7 +124,7 @@ class RepasseServiceTestCase(TestCase):
         corretor = create_corretor(self.advogado)  # comissao_padrao=20.00
         self.processo.corretor = corretor
         self.processo.save()
-        # escritorio_base = 500 × 30% = 150
+        # escritorio_base = event = 150
         # corretor_valor  = 150 × 20% = 30
         # restante        = 120
         # advogado_valor  = 120 × 30% = 36
@@ -140,7 +141,7 @@ class RepasseServiceTestCase(TestCase):
         corretor = create_corretor(self.advogado)  # comissao_padrao=20.00
         self.processo.corretor = corretor
         self.processo.save()
-        # escritorio_base = 500 × 30% = 150
+        # escritorio_base = event = 150
         # corretor_valor  = 150 × 20% = 30
         repasse = RepasseService.repassar(
             pagamento=self.pagamento,
@@ -152,7 +153,7 @@ class RepasseServiceTestCase(TestCase):
         self.assertEqual(repasse.corretor, corretor)
         self.assertIsNone(repasse.advogado)
         self.assertEqual(repasse.valor_repassado, Decimal("30.00"))
-        self.assertEqual(repasse.valor_total, Decimal("500.00"))
+        self.assertEqual(repasse.valor_total, Decimal("150.00"))
         self.assertEqual(repasse.comissao_porcentagem, Decimal("20.00"))
         self.assertIn(self.evento_abril, repasse.eventos.all())
 
@@ -170,29 +171,29 @@ class RepasseServiceTestCase(TestCase):
         self.assertEqual(repasse.valor_total, Decimal("500.00"))
 
     def test_repassar_agrega_multiplos_eventos_no_mes(self):
-        create_evento(self.pagamento, Decimal("200.00"), date(2026, 4, 20))
-        # Total April: 500 + 200 = 700
-        # escritorio_base = 700 × 30% = 210; advogado_valor = 210 × 30% = 63
+        create_evento(self.pagamento, Decimal("60.00"), date(2026, 4, 20))
+        # Total April: 150 + 60 = 210 (office amounts)
+        # escritorio_base = 210; advogado_valor = 210 × 30% = 63
         repasse = RepasseService.repassar(
             pagamento=self.pagamento,
             tipo=TipoRepasse.ADVOGADO,
             data_repasse=date(2026, 4, 13),
         )
 
-        self.assertEqual(repasse.valor_total, Decimal("700.00"))
+        self.assertEqual(repasse.valor_total, Decimal("210.00"))
         self.assertEqual(repasse.valor_repassado, Decimal("63.00"))
         self.assertEqual(repasse.eventos.count(), 2)
 
     def test_repassar_ignora_eventos_de_outros_meses(self):
         create_evento(self.pagamento, Decimal("300.00"), date(2026, 3, 15))
-        # Only April's 500.00 is included; March's 300.00 is ignored
+        # Only April's 150.00 is included; March's 300.00 is ignored
         repasse = RepasseService.repassar(
             pagamento=self.pagamento,
             tipo=TipoRepasse.ADVOGADO,
             data_repasse=date(2026, 4, 13),
         )
 
-        self.assertEqual(repasse.valor_total, Decimal("500.00"))
+        self.assertEqual(repasse.valor_total, Decimal("150.00"))
         self.assertEqual(repasse.eventos.count(), 1)
 
     def test_repassar_sem_eventos_no_mes_raises_error(self):
@@ -236,7 +237,7 @@ class RepasseServiceTestCase(TestCase):
     def test_repassar_com_comissao_ajustada_advogado(self):
         self.processo.comissao_ajustada_advogado = Decimal("50.00")
         self.processo.save()
-        # escritorio_base = 500 × 30% = 150; advogado_valor = 150 × 50% = 75
+        # escritorio_base = event = 150; advogado_valor = 150 × 50% = 75
         repasse = RepasseService.repassar(
             pagamento=self.pagamento,
             tipo=TipoRepasse.ADVOGADO,
@@ -263,7 +264,8 @@ class RepassarAPIViewTestCase(TestCase):
         self.url = reverse(
             "pagamento_repassar", kwargs={"pagamento_id": self.pagamento.id}
         )
-        create_evento(self.pagamento, Decimal("500.00"), date(2026, 4, 10))
+        # event records the office amount directly (escritorio_base)
+        create_evento(self.pagamento, Decimal("150.00"), date(2026, 4, 10))
 
     def test_repassar_requires_authentication(self):
         response = self.client.post(
@@ -313,7 +315,7 @@ class RepassarAPIViewTestCase(TestCase):
         self.assertEqual(Repasse.objects.count(), 1)
         repasse = Repasse.objects.first()
         self.assertEqual(repasse.tipo, TipoRepasse.CORRETOR)
-        # escritorio_base = 500 × 30% = 150; corretor_valor = 150 × 20% = 30
+        # escritorio_base = event = 150; corretor_valor = 150 × 20% = 30
         self.assertEqual(repasse.valor_repassado, Decimal("30.00"))
 
     def test_repassar_missing_tipo(self):

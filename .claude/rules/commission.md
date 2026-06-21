@@ -20,19 +20,28 @@ payment types. Consult it before implementing or modifying any feature that touc
 
 > **Rule: Corretor cuts from `escritorio_base` first; advogado cuts from what remains.**
 
+The recorded payment (`PagamentoEvento.valor_recebido`) **is already the office
+amount** — the client only pays the office its slice, not the full benefit. So
+`escritorio_base` equals the registered payment directly; there is no
+`× porcentagem_escritorio` step in the distribution. The benefit and split are still
+stored on the implantação as `valor_beneficio` and `porcentagem_escritorio`, and the
+office amount is derived by the `PagamentoImplantacao.valor_escritorio` property
+(`valor_beneficio × porcentagem_escritorio%`) — that is the amount registered as paid.
+
 ```
-escritorio_base = valor_recebido × porcentagem_escritorio%
+escritorio_base = valor_recebido            ← already the office amount
 corretor_valor  = escritorio_base × corretor%    ← first, from escritorio_base
 restante        = escritorio_base - corretor_valor
 advogado_valor  = restante × advogado%
 escritorio      = restante - advogado_valor
 ```
 
-**Example:** valor_recebido = 100, escritorio = 30%, advogado = 30%, corretor = 10%
+**Example:** valor_beneficio = 100, escritorio = 30% → valor_recebido (office) = 30;
+advogado = 30%, corretor = 10%
 
 | Party | Calculation | Amount |
 |---|---|---|
-| escritorio_base | 100 × 30% | 30 |
+| escritorio_base | valor_recebido | 30 |
 | corretor | 30 × 10% | 3 |
 | restante | 30 − 3 | 27 |
 | advogado | 27 × 30% | 8.10 |
@@ -109,7 +118,7 @@ always the party's `comissao_padrao`. A `comissao_ajustada` of `0` is not valid
 
 `total_receita` = sum of the **distributable base** for all payments in the period:
 
-- Implantação → `escritorio_base` (the office's slice of the payment)
+- Implantação → `escritorio_base` (= the recorded payment, already the office's slice)
 - Contrato → `total_recebido` (the full received amount)
 
 `total_escritorio = total_receita − Σ advogado_net − Σ corretor_valor`
@@ -122,7 +131,8 @@ The invariant always holds: `total_receita = total_escritorio + Σ advogado + Σ
 
 Logic lives in `pagamento/services/relatorio_service.py`:
 
-- `_calcular_implantacao(total_recebido, porcentagem_escritorio, advogado_porcentagem, corretor_porcentagem)`
+- `_calcular_implantacao(total_recebido, advogado_porcentagem, corretor_porcentagem)`
+  (`total_recebido` is already the office amount → `escritorio_base = total_recebido`)
   → returns `(escritorio_base, corretor_valor, restante, advogado_valor, escritorio_liquido)`
 - `_calcular_contrato(total_recebido, advogado_porcentagem, corretor_porcentagem)`
   → returns `(corretor_valor, restante, advogado_valor, escritorio_liquido)`

@@ -206,15 +206,16 @@ class RelatorioRecolhimentoAPIViewTestCase(TestCase):
     def test_recolhimento_commission_implantacao(self):
         """
         IMPLANTACAO with corretor:
-          valor_total=1000, porcentagem_escritorio=30%, advogado=30%, corretor=10%
-          escritorio_base = 300, corretor_valor = 30, restante = 270
+          valor_beneficio=1000, porcentagem_escritorio=30% → office amount = 300
+          advogado=30%, corretor=10%
+          escritorio_base = valor_pendente = 300, corretor_valor = 30, restante = 270
           advogado_valor = 81, escritorio_liquido = 189
         """
         corretor = create_corretor(self.advogado, comissao_padrao=Decimal("10.00"))
         processo = create_processo(advogado=self.advogado, corretor=corretor)
         create_implantacao(
             processo,
-            valor_total=Decimal("1000.00"),
+            valor_beneficio=Decimal("1000.00"),
             porcentagem_escritorio=Decimal("30.00"),
             status=StatusPagamento.PLANEJADO,
             data_vencimento=date(2025, 1, 15),
@@ -226,7 +227,7 @@ class RelatorioRecolhimentoAPIViewTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         pagamento_data = response.data["advogados"][0]["pagamentos"][0]
         self.assertEqual(pagamento_data["tipo"], "IMPLANTACAO")
-        self.assertEqual(pagamento_data["valor_pendente"], Decimal("1000.00"))
+        self.assertEqual(pagamento_data["valor_pendente"], Decimal("300.00"))
         self.assertEqual(
             pagamento_data["comissao_advogado_porcentagem"], Decimal("30.00")
         )
@@ -272,49 +273,50 @@ class RelatorioRecolhimentoAPIViewTestCase(TestCase):
 
     def test_recolhimento_valor_pendente_parcialmente_pago(self):
         """
-        PARCIALMENTE_PAGO: valor_pendente = valor_total - soma dos eventos.
-          valor_total=1000, received=600 → valor_pendente=400
-          porcentagem_escritorio=30%, advogado=30%, no corretor:
+        PARCIALMENTE_PAGO: valor_pendente = office amount - soma dos eventos.
+          valor_beneficio=1000, porcentagem_escritorio=30% → office amount = 300
+          received=180 → valor_pendente=120
+          advogado=30%, no corretor:
           escritorio_base = 120, restante = 120
           advogado_valor = 36, escritorio_liquido = 84
         """
         processo = create_processo(advogado=self.advogado)
         pagamento, _ = create_implantacao(
             processo,
-            valor_total=Decimal("1000.00"),
+            valor_beneficio=Decimal("1000.00"),
             porcentagem_escritorio=Decimal("30.00"),
             status=StatusPagamento.PARCIALMENTE_PAGO,
             data_vencimento=date(2025, 1, 15),
         )
-        create_evento(pagamento, Decimal("600.00"), date(2025, 1, 10))
+        create_evento(pagamento, Decimal("180.00"), date(2025, 1, 10))
         self.client.force_authenticate(user=self.superuser)
         response = self.client.get(
             self.url, {"data_inicio": "2025-01-01", "data_fim": "2025-01-31"}
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         pagamento_data = response.data["advogados"][0]["pagamentos"][0]
-        self.assertEqual(pagamento_data["valor_pendente"], Decimal("400.00"))
+        self.assertEqual(pagamento_data["valor_pendente"], Decimal("120.00"))
         self.assertEqual(pagamento_data["comissao_advogado_valor"], Decimal("36.00"))
         self.assertEqual(pagamento_data["valor_escritorio"], Decimal("84.00"))
 
     def test_recolhimento_total_recolhimento_aggregated(self):
         """
         total_recolhimento = sum of valor_escritorio across all pagamentos.
-          pag1: valor_total=1000, pct_esc=30%, adv=30%, no corretor → escritorio=210
-          pag2: valor_total=500,  pct_esc=30%, adv=30%, no corretor → escritorio=105
+          pag1: valor_beneficio=1000, pct_esc=30% → office 300, adv=30% → escritorio=210
+          pag2: valor_beneficio=500,  pct_esc=30% → office 150, adv=30% → escritorio=105
           total = 315
         """
         processo = create_processo(advogado=self.advogado)
         create_implantacao(
             processo,
-            valor_total=Decimal("1000.00"),
+            valor_beneficio=Decimal("1000.00"),
             porcentagem_escritorio=Decimal("30.00"),
             status=StatusPagamento.PLANEJADO,
             data_vencimento=date(2025, 1, 15),
         )
         create_implantacao(
             processo,
-            valor_total=Decimal("500.00"),
+            valor_beneficio=Decimal("500.00"),
             porcentagem_escritorio=Decimal("30.00"),
             status=StatusPagamento.PLANEJADO,
             data_vencimento=date(2025, 1, 20),
