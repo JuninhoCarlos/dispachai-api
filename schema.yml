@@ -1137,9 +1137,21 @@ components:
           exclusiveMinimum: true
         repasse_status:
           type: string
+        data_vencimento:
+          type: string
+          format: date
+        data_pagamento:
+          type: string
+          format: date
+        numero_parcela:
+          type: integer
+        total_parcelas:
+          type: integer
       required:
       - comissao_porcentagem
       - comissao_valor
+      - data_pagamento
+      - data_vencimento
       - pagamento_id
       - receita
       - repasse_status

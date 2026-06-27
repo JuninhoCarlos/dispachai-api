@@ -13,6 +13,9 @@ def _add_pagamento_to_processo(
     comissao_porcentagem,
     comissao_valor,
     repasse_status,
+    data_vencimento,
+    data_pagamento,
+    parcela_fields,
 ):
     processo_id = processo.id
     if processo_id not in processos_map:
@@ -29,6 +32,9 @@ def _add_pagamento_to_processo(
             "comissao_porcentagem": comissao_porcentagem,
             "comissao_valor": comissao_valor,
             "repasse_status": repasse_status,
+            "data_vencimento": data_vencimento,
+            "data_pagamento": data_pagamento,
+            **parcela_fields,
         }
     )
 
@@ -81,8 +87,11 @@ def build_relatorio(eventos, data_inicio, data_fim):
             pagamento_totais[pagamento_id] = {
                 "pagamento": evento.pagamento,
                 "total_recebido": Decimal("0.00"),
+                "data_pagamento": evento.data_pagamento,
             }
         pagamento_totais[pagamento_id]["total_recebido"] += evento.valor_recebido
+        if evento.data_pagamento > pagamento_totais[pagamento_id]["data_pagamento"]:
+            pagamento_totais[pagamento_id]["data_pagamento"] = evento.data_pagamento
 
     pagamento_ids = list(pagamento_totais.keys())
     repassados = set(
@@ -99,6 +108,7 @@ def build_relatorio(eventos, data_inicio, data_fim):
     for item in pagamento_totais.values():
         pagamento = item["pagamento"]
         total_recebido = item["total_recebido"]
+        data_pagamento = item["data_pagamento"]
         processo = pagamento.processo
         advogado = processo.advogado
         corretor = processo.corretor
@@ -107,6 +117,7 @@ def build_relatorio(eventos, data_inicio, data_fim):
             processo.comissao_ajustada_advogado, advogado.comissao_padrao
         )
 
+        parcela_fields = {}
         if pagamento.tipo == TipoPagamento.IMPLANTACAO:
             corretor_porcentagem = None
             corretor_porcentagem_valor = Decimal("0.00")
@@ -130,6 +141,7 @@ def build_relatorio(eventos, data_inicio, data_fim):
             receita_total = escritorio_base
             receita_advogado = restante
             receita_corretor = escritorio_base
+            data_vencimento = pagamento.implantacao.data_vencimento
 
         else:  # CONTRATO_PARCELA or CONTRATO_ENTRADA
             corretor_porcentagem = None
@@ -148,6 +160,12 @@ def build_relatorio(eventos, data_inicio, data_fim):
             receita_total = total_recebido
             receita_advogado = restante
             receita_corretor = total_recebido
+            parcela = pagamento.parcela
+            data_vencimento = parcela.data_vencimento
+            parcela_fields = {
+                "numero_parcela": parcela.numero_parcela,
+                "total_parcelas": parcela.contrato.numero_parcelas,
+            }
 
         total_receita += receita_total
         total_escritorio += escritorio_liquido
@@ -171,6 +189,9 @@ def build_relatorio(eventos, data_inicio, data_fim):
             advogado_porcentagem,
             advogado_valor,
             repasse_status_adv,
+            data_vencimento,
+            data_pagamento,
+            parcela_fields,
         )
 
         if corretor:
@@ -193,6 +214,9 @@ def build_relatorio(eventos, data_inicio, data_fim):
                 corretor_porcentagem,
                 corretor_valor,
                 repasse_status_corretor,
+                data_vencimento,
+                data_pagamento,
+                parcela_fields,
             )
 
     for advogado_entry in advogado_map.values():
