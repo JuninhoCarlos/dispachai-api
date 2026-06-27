@@ -574,6 +574,68 @@ class RelatorioReceitaAPIViewTestCase(TestCase):
                 self.assertEqual(response.status_code, status.HTTP_200_OK)
                 self.assertEqual(len(response.data["advogados"]), 1)
 
+    def test_relatorio_receita_implantacao_includes_data_vencimento_and_data_pagamento(
+        self,
+    ):
+        """IMPLANTACAO entry exposes data_vencimento and data_pagamento but omits
+        parcela fields."""
+        processo = create_processo(advogado=self.advogado)
+        pagamento, _ = create_implantacao(processo, data_vencimento=date(2025, 1, 5))
+        create_evento(pagamento, Decimal("100.00"), date(2025, 1, 15))
+
+        self.client.force_authenticate(user=self.superuser)
+        response = self.client.get(
+            self.url, {"data_inicio": "2025-01-01", "data_fim": "2025-01-31"}
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        pag_entry = response.data["advogados"][0]["processos"][0]["pagamentos"][0]
+        self.assertEqual(pag_entry["data_vencimento"], "2025-01-05")
+        self.assertEqual(pag_entry["data_pagamento"], "2025-01-15")
+        self.assertNotIn("numero_parcela", pag_entry)
+        self.assertNotIn("total_parcelas", pag_entry)
+
+    def test_relatorio_receita_contrato_includes_parcela_fields(self):
+        """CONTRATO entry exposes data_vencimento, data_pagamento, numero_parcela and
+        total_parcelas (from the contrato)."""
+        processo = create_processo(advogado=self.advogado)
+        pagamento, parcela = create_parcela(
+            processo,
+            data_vencimento=date(2025, 1, 10),
+            numero_parcela=3,
+        )
+        parcela.contrato.numero_parcelas = 12
+        parcela.contrato.save()
+        create_evento(pagamento, Decimal("100.00"), date(2025, 1, 20))
+
+        self.client.force_authenticate(user=self.superuser)
+        response = self.client.get(
+            self.url, {"data_inicio": "2025-01-01", "data_fim": "2025-01-31"}
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        pag_entry = response.data["advogados"][0]["processos"][0]["pagamentos"][0]
+        self.assertEqual(pag_entry["data_vencimento"], "2025-01-10")
+        self.assertEqual(pag_entry["data_pagamento"], "2025-01-20")
+        self.assertEqual(pag_entry["numero_parcela"], 3)
+        self.assertEqual(pag_entry["total_parcelas"], 12)
+
+    def test_relatorio_receita_data_pagamento_uses_latest_event(self):
+        """When a payment has multiple in-range events, data_pagamento is the latest."""
+        processo = create_processo(advogado=self.advogado)
+        pagamento, _ = create_implantacao(processo, data_vencimento=date(2025, 1, 1))
+        create_evento(pagamento, Decimal("40.00"), date(2025, 1, 10))
+        create_evento(pagamento, Decimal("60.00"), date(2025, 1, 25))
+
+        self.client.force_authenticate(user=self.superuser)
+        response = self.client.get(
+            self.url, {"data_inicio": "2025-01-01", "data_fim": "2025-01-31"}
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        pag_entry = response.data["advogados"][0]["processos"][0]["pagamentos"][0]
+        self.assertEqual(pag_entry["data_pagamento"], "2025-01-25")
+
     def test_relatorio_receita_repasse_status_empty_string_applies_default_filter(self):
         """repasse_status='' (empty string) still applies the default exclusion."""
         processo = create_processo(advogado=self.advogado)

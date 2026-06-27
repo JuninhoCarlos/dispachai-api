@@ -246,6 +246,7 @@ class ReceitaRelatorioAPIView(GenericAPIView):
             "pagamento__processo__cliente",
             "pagamento__implantacao",
             "pagamento__parcela",
+            "pagamento__parcela__contrato",
         )
         f = RelatorioReceitaFilter(request.GET, queryset=base_qs)
         relatorio = build_relatorio(f.qs, f.data_inicio_effective, f.data_fim_effective)
